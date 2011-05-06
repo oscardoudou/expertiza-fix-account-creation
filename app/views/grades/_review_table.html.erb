@@ -5,7 +5,7 @@
 		<% end %>
 	</tr>
 	<% if controller.action_name != "view_my_scores" %>
-	<tr class="head"><td align="right"><b><%= rowlabel %></b></td>	    	
+	<tr class="head"><td align="right"><b><%= rowlabel %></b></td>
 		<% for review in reviews %>
            <td align="center">                       
            <% if prefix %>         
@@ -17,15 +17,15 @@
 	    <% end %>
 	</tr>
 	<% end %>
-	<tr class="head"><td align="right"><b>Average score</b></td>
+	<tr class="head"><td align="right"><b>Score</b></td>
 		<% for review in reviews %>
-		   <td align="center">
-		       <% score = Score.get_total_score(review, @questions[symbol]) %>
-		       <% if controller.action_name != "view_my_scores" %>
+		   <td align="center" <%= review.current? ? ScoreViewHelper::CURRENT_REVIEW_CELL_MARKUP : ScoreViewHelper::OUTDATED_REVIEW_CELL_MARKUP %>>
+			   <% score = Score.get_total_score(review, @questions[symbol]) %>
+		     <% if controller.action_name != "view_my_scores" %>
 		       	<input type="hidden" id="mailer_<%= review.map.reviewer.fullname %>_grade" name="mailer[<%= review.map.reviewer.fullname %>_grade]" value="<%= score  %>" %>
-		       <% end %>   
-	  	       <%= sprintf("%.2f",score) %>% &nbsp;
-	  	   </td>
-	    <% end %>
+         <% end %>
+         <%= sprintf("%.2f",score) %>% &nbsp;
+       </td>
+	  <% end %>
 	</tr>
 </table>

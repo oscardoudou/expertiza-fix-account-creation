@@ -95,4 +95,8 @@ class ReviewResponseMap < ResponseMap
       return nil
     end
   end
+  
+  def current?()
+    true
+  end
 end

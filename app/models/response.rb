@@ -81,4 +81,8 @@ class Response < ActiveRecord::Base
     self.scores.each {|score| score.destroy}
     self.destroy
   end  
+  
+  def current?()
+    (rand(2) == 0)
+  end
 end

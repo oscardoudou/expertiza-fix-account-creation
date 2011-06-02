@@ -601,7 +601,11 @@ class SignUpSheetController < ApplicationController
         prev_saved_due_dates = TopicDeadline.find_all_by_topic_id(topic_id)
         if !prev_saved_due_dates.nil?
           prev_saved_due_dates.each {|date|
-            date.destroy
+            set_of_due_dates.each {|due_date|
+                if DateTime.parse(due_date.due_at.to_s) + offset.to_i > DateTime.parse(date.due_at.to_s)
+                  date.destroy
+                end    
+              }
           }
         end
 

@@ -126,7 +126,7 @@ class AssignmentController < ApplicationController
         
         #for drop topic
         due_date = DueDate::set_duedate(params[:drop_topic_deadline],@drop_topic_deadline, @assignment.id, 0)
-        raise "Please enter a valid drop toipic deadline" if !due_date
+        raise "Please enter a valid Drop-topic deadline" if !due_date
         #end of addition
         
         if params[:assignment_helper][:no_of_reviews].to_i >= 2
@@ -161,7 +161,9 @@ class AssignmentController < ApplicationController
         # Creating node information for assignment display
         @assignment.create_node()
         
-        flash[:alert] = "There is already an assignment named \"#{@assignment.name}\". &nbsp;<a style='color: blue;' href='../../assignment/edit/#{@assignment.id}'>Edit assignment</a>" if @assignment.duplicate_name?
+        if @assignment.duplicate_name?
+          flash[:alert] = "There is already an assignment named \"#{@assignment.name}\". &nbsp;<a style='color: blue;' href='../../assignment/edit/#{@assignment.id}'>Edit new assignment</a>"
+        end
         flash[:note] = 'Assignment was successfully created.'
         redirect_to :action => 'list', :controller => 'tree_display'
       rescue

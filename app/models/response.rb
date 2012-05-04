@@ -1,6 +1,7 @@
 class Response < ActiveRecord::Base
   belongs_to :map, :class_name => 'ResponseMap', :foreign_key => 'map_id'
   has_many :scores, :class_name => 'Score', :foreign_key => 'response_id', :dependent => :destroy
+  has_one :automated_metareview, :class_name => 'AutomatedMetareview', :foreign_key => 'response_id'
   
   def display_as_html(prefix = nil, count = nil, file_url = nil)
     identifier = ""

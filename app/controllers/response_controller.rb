@@ -367,12 +367,14 @@ class ResponseController < ApplicationController
   def saving   
     @map = ResponseMap.find(params[:id])
     @return = params[:return]
-    @map.notification_accepted = false;
-    puts("saving for me ")
-    puts(params[:id]);
+    @map.notification_accepted = false
     @map.save
-    
-    redirect_to :action => 'redirection', :id => @map.id, :return => params[:return], :msg => params[:msg], :error_msg => params[:error_msg]
+    puts("*** saving for me:: #{params[:id]}")
+    #calling the automated metareviewer controller, which calls its corresponding model/view
+    redirect_to :controller => 'automated_metareviews', :action => 'list', :id => @map.id
+    #end of call
+    #puts(params[:id]) 
+    #redirect_to :action => 'redirection', :id => @map.id, :return => params[:return], :msg => params[:msg], :error_msg => params[:error_msg]
   end
   
   def redirection

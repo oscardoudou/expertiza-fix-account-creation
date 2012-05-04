@@ -15,6 +15,12 @@ gem 'rgl', :require => 'rgl/adjacency'
 gem 'rubyzip', :require => 'zip/zip'
 gem 'rdoc'
 gem "rspec-rails", "1.3.2"
+gem 'engtagger'
+gem 'stanford-core-nlp'
+gem 'rwordnet'
+gem 'stemmer'
+gem 'raspell'
+gem 'nokogiri'
 group :development do
   gem 'mongrel'
   gem 'ruby-debug'

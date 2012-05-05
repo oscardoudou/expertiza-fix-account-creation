@@ -1,0 +1,23 @@
+<h2>Metareview feedback for Review</h2>
+<% for i in 0..@automated_metareview.responses.scores.length - 1 %>
+	<b> Comment <%=i+1%>: </b><%= @automated_metareview.responses.scores[i].comments.to_s %> <br>
+<% end %>
+	<br>
+<b> Degree of relevance </b> <br>
+<%= @automated_metareview.relevance %> <br> 
+
+<b> Review Content </b> <br>
+<%= @automated_metareview.content %> <br>
+
+<b> Review Tone </b> <br>
+<%= @automated_metareview.tone %> <br>
+
+<b> Review Quantity </b> <br>
+<%= @automated_metareview.quantity %> <br>
+
+<b> Presence of plagiarism </b> <br>
+<%= @automated_metareview.plagiarism %>
+
+<br><br>
+<a href="javascript:window.history.back()">Back</a>
+<%= submit_tag "Save" redirect_to :controller => 'automated_metareview', :action => 'save', :id => @map.reviewer.id %>

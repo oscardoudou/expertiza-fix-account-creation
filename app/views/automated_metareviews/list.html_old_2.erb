@@ -1,0 +1,36 @@
+
+<h3>Review</h3>
+<% for i in 0..@automated_metareview.responses.scores.length - 1 %>
+	<b> [<%=i+1%>] <%= Question.find_by_sql(["Select * from questions where id = ?", @automated_metareview.responses.scores[i].question_id])[0].txt %> </b> <br>
+	<%= @automated_metareview.responses.scores[i].comments.to_s %> <br>
+<% end %>
+<h3>Metareview Feedback for Review</h3>
+<img src="<%= @graph %>" alt="Metareview graph" style="float:right;margin:0 5px 0 0;" />
+<ol>
+<!-- Degree of Relevance -->
+<li><h4> Degree of relevance between your review and the author's submission (<i>[0 - 1] Scale</i>) <%= (@automated_metareview.relevance * 10000).round.to_f/10000 %> </h4></li> 
+<!-- Review Content -->
+<li><h4>Extent to which the review contains each of the following (<i>[0 - 1] Scale</i>) </h4></li>
+<ol>
+<li>Review contains praise or summaries - <b><%= (@automated_metareview.content_summative * 10000).round.to_f/10000 %> </b> </li>
+<li>Review identifies problems in the author's work - <b><%= (@automated_metareview.content_problem * 10000).round.to_f/10000 %> </b></li>
+<li>Review provides suggestions for improvement -  <b><%= (@automated_metareview.content_advisory * 10000).round.to_f/10000 %> </b></li>
+</ol>
+<!-- Review Tone -->
+<li> <h4> Extent to which the review contains each of the following tones (<i>[0 - 1] Scale</i>) </h4></li>
+<ol>
+<li>Positive -  <b><%= (@automated_metareview.tone_positive * 10000).round.to_f/10000 %> </b></li>
+<li>Negative - <b> <%= (@automated_metareview.tone_negative * 10000).round.to_f/10000 %> </b></li>
+<li>Neutral - <b> <%= (@automated_metareview.tone_neutral * 10000).round.to_f/10000 %> </b> </li>
+</ol>
+<!-- Quantity -->
+<li><h4> Amount of feedback provided in terms of the number of unique tokens - <%= @automated_metareview.quantity %> <br></h4></li>
+<!-- Plagiarism -->
+<li><h4> Presence of plagiarism - <%= @automated_metareview.plagiarism%> </li> </h4>
+</ol>
+
+<!--<img src="<%= @graph %>"/>-->
+<br><br>
+<a href="javascript:window.history.back()"><%= button_to 'Edit Review Again'%></a>
+<%= link_to 'Back to Reviews List', :controller => 'student_review', :action =>'list', :id => ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id %>
+<% puts "@participant.id #{ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id}"%> 

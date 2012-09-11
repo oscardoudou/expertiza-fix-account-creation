@@ -1,0 +1,159 @@
+<head> <%= Seer::init_visualization %> </head>
+
+<h2>Review</h2>
+<% for i in 0..@automated_metareview.responses.scores.length - 1 %>
+	<b> Comment <%=i+1%>: </b><%= @automated_metareview.responses.scores[i].comments.to_s %> <br>
+<% end %>
+<br>
+<h2>Metareview Feedback for Review</h2>
+<!-- Selecting all metareviews other than those for the review that is currently being metareviewed. 
+	This is to produce average values, to indicate to the reviewer where his review stands in comparison to others'.--> 
+<% count =  AutomatedMetareview.count( :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<!-- Extracting existing metareviews to display to the reviewer where his/her review stands-->
+<% @existing_metareviews = Array.new %>
+<% @existing_metareviews << AutomatedMetareview.find_by_sql(["select avg(relevance) as avg  from automated_metareviews where response_id <> ?", @automated_metareview.response_id]) %>
+<% @existing_metareviews << AutomatedMetareview.find_by_sql(["select avg(content_summative) as avg  from automated_metareviews where response_id <> ?", @automated_metareview.response_id]) %>
+<% @existing_metareviews << AutomatedMetareview.find_by_sql(["select avg(content_problem) as avg  from automated_metareviews where response_id <> ?", @automated_metareview.response_id]) %>
+<% @existing_metareviews << AutomatedMetareview.find_by_sql(["select avg(content_advisory) as avg  from automated_metareviews where response_id <> ?", @automated_metareview.response_id]) %>
+<!-- <% @existing_metareviews << AutomatedMetareview.find_by_sql(["select avg(relevance) as relevance, avg(content_summative) as content_summative, avg(content_problem) as content_problem, avg(content_advisory) as content_advisory  from automated_metareviews where response_id <> ?", @automated_metareview.response_id]) %> -->
+<%= @existing_metareviews %>
+<%= @existing_metareviews.length %>
+ <% @current_metareviews = Array.new %>
+<% @current_metareviews << AutomatedMetareview.find(:first, :conditions => ["response_id = ?", @automated_metareview.response_id], :order => "version_num DESC") %>
+
+<!-- Degree of Relevance -->
+<b><u> Degree of relevance between your review and the author's submission:: </u></b> (<i>On a sclae of [0 - 1]</i>) <br>
+<b> <%= (@automated_metareview.relevance * 10000).round.to_f/10000 %> </b><br> 
+<!-- Selecting sum of relevance values-->
+<% sum_relevance = AutomatedMetareview.sum("relevance", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<!-- Printing average relevance value.-->
+<% avg_relevance = (sum_relevance/count * 1000000).round.to_f/1000000 %>
+<i> Average relevance value:: </i> <b><%= avg_relevance %></b>	<br>
+<!-- <div id="relevance">
+<%= Seer::visualize(
+      @existing_metareviews, 
+      :as => :column_chart,
+      :in_element =>'relevance', 
+      :series => {:series_label => 'id', :data_method => 'relevance'},
+      :chart_options => {
+        :height => 300,
+        :width => 300,
+        :axis_font_size => 11,
+        :is_3_d => true,
+        :legend => 'none',
+        :max => avg_relevance,
+        :colors => "[{color:'#990000', darker:'#660000'}]",
+        :title => "Average of Existing Relevance Values",
+        #:title_x => 'Existing Metareviews',
+        #:title_y => 'Relevance'
+      }
+    )
+ %>
+ </div> -->
+<br>
+
+<!-- Review Content -->
+<b><u> Extent to which the review contains each of the following:: </u></b> (<i>On a sclae of [0 - 1]</i>) <br>
+<i>Review contains praise or summaries::</i> <b><%= (@automated_metareview.content_summative * 10000).round.to_f/10000 %> </b><br>
+<i>Review identifies problems in the author's work::</i> <b><%= (@automated_metareview.content_problem * 10000).round.to_f/10000 %> </b><br>
+<i>Review provides suggestions for improvement::</i> <b><%= (@automated_metareview.content_advisory * 10000).round.to_f/10000 %> </b><br>
+<br>
+<!-- Selecting sum of content type values.-->
+<% sum_praise = AutomatedMetareview.sum("content_summative", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<% sum_problem = AutomatedMetareview.sum("content_problem", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<% sum_advisory = AutomatedMetareview.sum("content_advisory", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<!-- Printing values.-->
+<i> Average of summative content value:: </i> <b><%= (sum_praise/count * 1000000).round.to_f/1000000 %></b> <br>
+<!-- <div id="content_summative">
+<%= Seer::visualize(
+      @existing_metareviews, 
+      :as => :column_chart,
+      :in_element =>'content_summative', 
+      :series => {:series_label => 'id', :data_method => 'content_summative'},
+      :chart_options => {
+        :height => 300,
+        :width => 300,
+        :is_3_d => true,
+        :legend => 'none',
+        :max => avg_relevance,
+        :colors => "[{color:'#990000', darker:'#660000'}]",
+        :title => "Average of Summative Content",
+        #:title_x => 'Existing Metareviews',
+        :title_y => 'Summative Content'
+      }
+    )
+ %>
+ </div> -->
+<i> Average of problem detection content </i> <b><%= (sum_problem/count * 1000000).round.to_f/1000000 %></b> <br>
+<!-- <div id="content_problem">
+<%= Seer::visualize(
+      @existing_metareviews, 
+      :as => :column_chart,
+      :in_element =>'content_problem', 
+      :series => {:series_label => 'id', :data_method => 'content_problem'},
+      :chart_options => {
+        :height => 300,
+        :width => 300,
+        :is_3_d => true,
+        :legend => 'none',
+        :colors => "[{color:'#990000', darker:'#660000'}]",
+        :title => "Average of Problem Detection Content",
+        #:title_x => 'Existing Metareviews',
+        :title_y => 'Problem Detection Content'
+      }
+    )
+ %>
+ </div> -->
+<i> Average of advisory content:: </i> <b><%= (sum_advisory/count * 1000000).round.to_f/1000000 %></b> <br>
+<!-- <div id="content_advisory">
+<%= Seer::visualize(
+      @existing_metareviews, 
+      :as => :column_chart,
+      :in_element =>'content_advisory', 
+      :series => {:series_label => 'id', :data_method => 'content_advisory'},
+      :chart_options => {
+        :height => 300,
+        :width => 300,
+        :is_3_d => true,
+        :legend => 'none',
+        :colors => "[{color:'#990000', darker:'#660000'}]",
+        :title => "Average of Advisory Content",
+        #:title_x => 'Existing Metareviews',
+        :title_y => 'Advisory Content'
+      }
+    )
+ %>
+ </div> -->
+<br>
+
+<!-- Review Tone -->
+<b><u> Extent to which the review contains each of the following tones:: </u></b> (<i>On a sclae of [0 - 1]</i>) <br>
+<i>Positive::</i>  <b><%= (@automated_metareview.tone_positive * 10000).round.to_f/10000 %> </b><br>
+<i> Negative:: </i> <b> <%= (@automated_metareview.tone_negative * 10000).round.to_f/10000 %> </b><br>
+<i> Neutral:: </i>  <b> <%= (@automated_metareview.tone_neutral * 10000).round.to_f/10000 %> </b><br>
+<br>
+<!-- Selecting sum of tone values.-->
+<% sum_positive = AutomatedMetareview.sum("tone_positive", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<% sum_negative = AutomatedMetareview.sum("tone_negative", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<% sum_neutral = AutomatedMetareview.sum("tone_neutral", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<!-- Printing values.-->
+<i> Average of positive value:: </i> <b><%= (sum_positive/count * 1000000).round.to_f/1000000 %></b> <br>
+<i> Average of negative value:: </i> <b><%= (sum_negative/count * 1000000).round.to_f/1000000 %></b> <br>
+<i> Average of neutral value:: </i> <b><%= (sum_neutral/count * 1000000).round.to_f/1000000 %></b> <br>
+<br>
+
+<b><u> Amount of feedback provided in terms of the number of unique tokens:: </u> <br> 
+<%= @automated_metareview.quantity %> </b> <br>
+<!-- Selecting sum of quantity values.-->
+<% sum_quantity = AutomatedMetareview.sum("quantity", :conditions => ["response_id <> ?", @automated_metareview.response_id]) %>
+<!-- Printing values.-->
+<i> Average of quantities:: </i> <b><%= (sum_quantity/count * 1000000).round.to_f/1000000 %></b> <br>
+<br>
+
+<b><u> Presence of plagiarism:: </u> <br> 
+<%= @automated_metareview.plagiarism%> </b>
+ 
+<br><br>
+<a href="javascript:window.history.back()"><%= button_to 'Edit Review Again'%></a>
+<%= link_to 'Back to Reviews List', :controller => 'student_review', :action =>'list', :id => ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id %>
+<% puts "@participant.id #{ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id}"%> 

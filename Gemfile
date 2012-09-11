@@ -21,6 +21,8 @@ gem 'rwordnet'
 gem 'stemmer'
 gem 'raspell'
 gem 'nokogiri'
+gem 'seer'
+gem 'gchart'
 group :development do
   gem 'mongrel'
   gem 'ruby-debug'

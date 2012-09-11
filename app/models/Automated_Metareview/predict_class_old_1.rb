@@ -8,7 +8,7 @@ class PredictClass
 =end
 #predicting the review's class
 def predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, pattern_files_array, num_classes)
-  p "!!!! Inside predict_classes method"
+  
   #reading the patterns from the pattern files
   patterns_files = Array.new
   pattern_files_array.each do |file|
@@ -24,26 +24,33 @@ def predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, patt
   end
   
   #Predicting the probability of the review belonging to each of the content classes
-  #initializing variables
   wordnet = WordnetBasedSimilarity.new
   max_probability = 0.0
+  class_value = 0
+     
+  #generating graph representation for the review
+  # g = GraphGenerator.new
+  #g.generate_graph(review_text, pos_tagger, core_NLP_tagger, false, true)
+      
+  max_probability = 0.0
   class_value = 0          
-  # edges = review_graph.edges #g.edges
-  g = GraphGenerator.new
-  # g.generate_graph(review_text, pos_tagger, core_NLP_tagger, false, false)
-  # edges = g.edges  
-  edges = review_graph.edges
-  puts "~~~~~~review_edges inside predict_classes length #{edges.length}"
+  edges = review_graph.edges #g.edges
+  puts "~~~~~~edges.length #{edges.length}"
+      
   class_prob = Array.new #contains the probabilities for each of the classes - it contains 3 rows for the 3 classes    
   #comparing each test review text with patterns from each of the classes
   for k in (0..num_classes - 1)
     #comparing edges with patterns from a particular class
-    class_prob[k] = compare_review_with_patterns(edges, single_patterns[k], wordnet)/6.to_f #normalizing the result 
-    #we divide the match by 6 to ensure the value is in the range of [0-1]     
+    class_prob[k] = compare_review_with_patterns(edges, single_patterns[k], wordnet)/6.to_f 
+    #we divide the match by 6 to ensure the value is in the range of [0-1]
+    #only for printing max probability
+    if(class_prob[k] > max_probability)
+      max_probability = class_prob[k] #setting the probability and class values
+      class_value = k
+    end       
   end #end of for loop for the classes          
+  puts("########## Probability for test review:: "+review_text[0]+" is:: #{max_probability} for class:: #{class_value}")
   
-  #printing the probability values
-  puts("########## Probability for test review:: "+review_text[0]+" is::")  
   for k in (0..num_classes - 1)
     puts "class_prob[#{k}] .. #{class_prob[k]}"
   end         
@@ -139,38 +146,18 @@ def compare_edges(e1, e2, wordnet)
   if(e2.nil?)
     puts("e2 is null")
   end
-  
-  avg_match_without_syntax = 0
-  #compare edges so that only non-nouns or non-subjects are compared
-  if(!e1.in_vertex.pos_tag.include?("NN") and !e1.out_vertex.pos_tag.include?("NN"))
-    avg_match_without_syntax = (wordnet.compare_strings(e1.in_vertex, e2.in_vertex, speller) + 
+    
+  avg_match_without_syntax = (wordnet.compare_strings(e1.in_vertex, e2.in_vertex, speller) + 
                               wordnet.compare_strings(e1.out_vertex, e2.out_vertex, speller))/2.to_f
-  elsif(!e1.in_vertex.pos_tag.include?("NN"))
-    avg_match_without_syntax = wordnet.compare_strings(e1.in_vertex, e2.in_vertex, speller)
-  elsif(!e1.out_vertex.pos_tag.include?("NN"))
-    avg_match_without_syntax = wordnet.compare_strings(e1.out_vertex, e2.out_vertex, speller)
-  end
-  
   # puts("e1 label:: #{e1.label}")
   # puts("e2 label:: #{e2.label}")
   #only for without-syntax comparisons
-  # avg_match_without_syntax = avg_match_without_syntax #/compare_labels(e1, e2) - ignore labels while predicting classes (since patterns are not assigned labels!)
-  
-  avg_match_with_syntax = 0
+  avg_match_without_syntax = avg_match_without_syntax #/compare_labels(e1, e2) - ignore labels while predicting classes (since patterns are not assigned labels!)
   puts("avg_match_without_syntax:: #{avg_match_without_syntax}")
     
   #matching in-out and out-in vertices
-  if(!e1.in_vertex.pos_tag.include?("NN") and !e1.out_vertex.pos_tag.include?("NN"))
-    avg_match_with_syntax = (wordnet.compare_strings(e1.in_vertex, e2.out_vertex, speller) + 
-                              wordnet.compare_strings(e1.out_vertex, e2.in_vertex, speller))/2.to_f
-  elsif(!e1.in_vertex.pos_tag.include?("NN"))
-    avg_match_with_syntax = wordnet.compare_strings(e1.in_vertex, e2.out_vertex, speller)
-  elsif(!e1.out_vertex.pos_tag.include?("NN"))
-    avg_match_with_syntax = wordnet.compare_strings(e1.out_vertex, e2.in_vertex, speller)
-  end
-  
-  # avg_match_with_syntax = (wordnet.compare_strings(e1.in_vertex, e2.out_vertex, speller) + 
-                           # wordnet.compare_strings(e1.out_vertex, e2.in_vertex, speller))/2.to_f
+  avg_match_with_syntax = (wordnet.compare_strings(e1.in_vertex, e2.out_vertex, speller) + 
+                           wordnet.compare_strings(e1.out_vertex, e2.in_vertex, speller))/2.to_f
   puts("avg_match_with_syntax:: #{avg_match_with_syntax}")
     
   if(avg_match_without_syntax > avg_match_with_syntax)
@@ -179,4 +166,30 @@ def compare_edges(e1, e2, wordnet)
     return avg_match_with_syntax
   end
 end #end of the compare_edges method
+#------------------------------------------#------------------------------------------#------------------------------------------
+=begin
+   SR Labels and vertex matches are given equal importance
+   * Problem is even if the vertices didn't match, the SRL labels would cause them to have a high similarity.
+   * Consider "boy - said" and "chocolate - melted" - these edges have NOMATCH for vertices, but both edges have the same label "SBJ" and would get an EXACT match, 
+   * resulting in an avg of 3! This cant be right!
+   * We therefore use the labels to only decrease the match value found from vertices, i.e., if the labels were different.
+   * Match value will be left as is, if the labels were the same.
+=end
+def compare_labels(edge1, edge2)
+  result = EQUAL
+  if(!edge1.label.nil? and !edge2.label.nil?)
+    if(edge1.label.casecmp(edge2.label) == 0)
+      result = EQUAL #divide by 1
+    else
+      result = DISTINCT #divide by 2
+    end
+  elsif((!edge1.label.nil? and edge2.label.nil?) or (edge1.label.nil? and !edge2.label.nil?))#if only one of the labels was null
+    result = DISTINCT
+  elsif(edge1.label.nil? and edge2.label.nil?) #if both labels were null!
+    result = EQUAL
+  end
+    
+  return result
+end #end of the compare_labels method
+      
 end

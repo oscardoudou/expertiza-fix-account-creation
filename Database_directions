@@ -1,0 +1,11 @@
+Creation of automated_metareviews table::
+
+create table automated_metareviews(id integer PRIMARY KEY AUTO_INCREMENT, relevance double, content_summative double, 
+content_problem double, content_advisory double, tone_positive double, tone_negative double, tone_neutral double, 
+quantity integer, plagiarism boolean, version_num integer, response_id integer);
+
+#inserting a few initial rows::
+insert into automated_metareviews values(2, 0.7, 0.1, 0.8, 0.3, 0.2, 0.5, 0.2, 30, false, 1, 2);
+
+insert into automated_metareviews values(1, 0.5, 0.2, 0.4, 0.7, 0.3, 0.1, 0.4, 23, false, 1, 1);
+

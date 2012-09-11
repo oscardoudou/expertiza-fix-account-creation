@@ -1,40 +1,39 @@
-require 'Automated_Metareview/textCollection'
+require 'Automated_Metareview/text_collection'
+require 'Automated_Metareview/constants'
+require 'Automated_Metareview/graph_generator'
 #require 'faster_csv'
-class PlagiarismChecker
 
+class PlagiarismChecker
 =begin
  reviewText and submText are array containing review and submission texts 
 =end
-def plagiarismCheck(reviewText, submText)
-  reviewText = removeTextWithinQuotes(reviewText) #reviewText is an array
-    
-  n = 5 #5-gram matches
+def check_for_plagiarism(review_text, subm_text)
+  review_text = remove_text_within_quotes(review_text) #review_text is an array
   result = false
-  for l in 0..reviewText.length - 1 #iterating through the review's sentences
-    review = reviewText[l]
-    puts "review.class #{review.class}.. review - #{review}"
-    for m in 0..submText.length - 1 #iterating though the submission's sentences
-      submission = submText[m]  
-      puts "submission.class #{submission.class}..submission - #{submission}"
-      revLen = 0
-      #System.out.println("Candidate: "+review);
-      rev = review.split(" ") #review's tokens, taking 'n' at a time
-      array = review.split(" ")   
-      puts array.length
+  for l in 0..review_text.length - 1 #iterating through the review's sentences
+    review = review_text[l].to_s
+    puts "review.class #{review.to_s.class}.. review - #{review}"
+    for m in 0..subm_text.length - 1 #iterating though the submission's sentences
+      submission = subm_text[m].to_s  
+      puts "submission.class #{submission.to_s.class}..submission - #{submission}"
+      rev_len = 0
       
-      while(revLen < array.length) do
-        if(array[revLen] == " ") #skipping empty
+      rev = review.split(" ") #review's tokens, taking 'n' at a time
+      array = review.split(" ")
+      
+      while(rev_len < array.length) do
+        if(array[rev_len] == " ") #skipping empty
           puts "skipping empty string: "
-          revLen+=1
+          rev_len+=1
           next
         end
         
         #generating the sentence segment you'd like to compare
-        revPhrase = array[revLen]
+        rev_phrase = array[rev_len]
        
         add = 0 #add on to this when empty strings found  
         
-        for j in revLen+1..(n+revLen+add-1) #concatenating 'n' tokens
+        for j in rev_len+1..(NGRAM+rev_len+add-1) #concatenating 'n' tokens
           #puts "array[j] #{array[j]}, j #{j}"
           if(j < array.length)
             if(array[j] == "") #skipping empty
@@ -42,49 +41,28 @@ def plagiarismCheck(reviewText, submText)
               add+=1
               next
             end
-            revPhrase = revPhrase +" "+  array[j]
+            rev_phrase = rev_phrase +" "+  array[j]
           end
         end
-        #System.out.println("printing j: "+j);
+        
         if(j == array.length)
-          #if j has reached the end of the array, then reset revlen to the end of array to, or shorter strings will be compared
-          revLen = array.length
+          #if j has reached the end of the array, then reset rev_len to the end of array to, or shorter strings will be compared
+          rev_len = array.length
         end
         
-        #if(submission.contains("."))
-          #submission = submission.substring(0, submission.indexOf("."));//ps.replaceAll(".", "") - DOESNT WORK
-        if(submission.include?("\""))
-          submission.gsub!("\"", "")
-        end
-        if(submission.include?(","))
-          submission.gsub!(",", "")
-        end
-        if(submission.include?(";"))
-          submission.gsub!(";", "")
-        end
-        if(submission.include?("!"))
-          submission.gsub!("!", "")
-        end
-        #if(revPhrase.contains("."))
-          #revPhrase = revPhrase.replaceAll(".", "");
-        if(revPhrase.include?(","))
-          revPhrase.gsub!(",", "")
-        end
-        if(revPhrase.include?(";"))
-          revPhrase.gsub!(";", "")
-        end
-        if(revPhrase.include?("!"))
-          revPhrase.gsub!("!", "")
-        end
-        puts "Review phrase: #{revPhrase}"
-        #puts "Submission phrase: #{submission}"
-        #checking if submission contains the review
-        if(submission.downcase.include?(revPhrase.downcase))
+        #replacing punctuation
+        graph_inst = GraphGenerator.new
+        submission = graph_inst.contains_punct(submission)
+        rev_phrase = graph_inst.contains_punct(rev_phrase)
+        #puts "Review phrase: #{rev_phrase} .. #{rev_phrase.split(" ").length}"
+        
+        #checking if submission contains the review and that only NGRAM number of review tokens are compared
+        if(rev_phrase.split(" ").length == NGRAM and submission.downcase.include?(rev_phrase.downcase))
           result = true
           break
         end
         #System.out.println("^^^ Plagiarism result:: "+result);
-        revLen+=1
+        rev_len+=1
       end #end of the while loop
       if(result == true)
         break
@@ -100,52 +78,35 @@ end
 =begin
 Check for plagiarism after removing text within quotes for reviews
 =end
-def removeTextWithinQuotes(reviewText)
+def remove_text_within_quotes(review_text)
   puts "Inside removeTextWithinQuotes:: "
   reviews = Array.new
-  reviewText.each{ |row|
+  review_text.each{ |row|
     puts "row #{row}"
     text = row 
-    puts "text #{text.class}" 
     #text = text[1..text.length-2] #since the first and last characters are quotes
     #puts "text #{text}"
     #the read text is tagged with two sets of quotes!
     if(text.include?("\""))
       while(text.include?("\"")) do
-        #puts("Length of text:: "+text.length())
-        array = text.split(//)#split the string by characters
-        firstIndex = -1
-        lastIndex = -1
-        for i in 0..array.length #since there could be more than one set of quotes!
-          if(firstIndex == -1 and array[i] == '\"' and array[i+1] == '\"')
-            firstIndex = i
-            #System.out.println("firstIndex:: "+firstIndex);
-          elsif(firstIndex != -1 and lastIndex == -1 and array[i] == '\"' and array[i+1] == '\"')
-            lastIndex = i+1
-            #System.out.println("lastIndex:: "+lastIndex)
-          elsif(firstIndex != -1 and lastIndex != -1)
-            substr = text[firstIndex..lastIndex+1]
-            text.gsub!(substr, "") #replacing the substring with empty string.
-            #System.out.println("Text:: "+text);
-            break #out of the for loops
-          end #end of the if condition
-        end #end of the for loop
-        reviews << text
+        replace_text = text.scan(/"([^"]*)"/)
+        # puts "replace_text #{replace_text[0]}.. #{replace_text[0].to_s.class} .. #{replace_text.length}"
+        # puts text.index(replace_text[0].to_s)
+        # puts "replace_text length .. #{replace_text[0].to_s.length}"
+        #fetching the start index of the quoted text, in order to replace the complete segment
+        start_index = text.index(replace_text[0].to_s) - 1 #-1 in order to start from the quote
+        # puts "text[start_index..start_index + replace_text[0].to_s.length+1] .. #{text[start_index.. start_index + replace_text[0].to_s.length+1]}"
+        #replacing the text segment within the quotes (including the quotes) with an empty string
+        text.gsub!(text[start_index..start_index + replace_text[0].to_s.length+1], "")
+        puts "text .. #{text}"
       end #end of the while loop
-    else
-      reviews << text
-    end  
+    end
+    reviews << text #set the text after all quoted segments have been removed.
   } #end of the loop for "text" array
-  #puts "reviews[0] #{reviews[0]}"
-  puts("Number of reviews (plagiarism) sentences:: #{reviews.length}")
+  puts "returning reviews length .. #{reviews.length}"
   return reviews #return only the first array element - a string!
 end
 #-------------------------    
 end
-
-#-------------------------
-# plag = PlagiarismChecker.new
-# plagiarism = plag.plagiarismCheck("/Users/lakshmi/Documents/Thesis/Ruby-test/sample-review.csv", "/Users/lakshmi/Documents/Thesis/Ruby-test/sample-submission.csv")
-# puts("plagiarism:: #{plagiarism}")
 
     

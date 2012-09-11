@@ -55,6 +55,7 @@ GEM
     fastthread (1.0.7)
     ffi (1.0.9)
     ffi (1.0.9-x86-mingw32)
+    gchart (1.0.0)
     gchartrb (0.8)
     gdata (1.1.2)
     gem_plugin (0.2.3)
@@ -133,6 +134,7 @@ GEM
       linecache (>= 0.3)
     rubyzip (0.9.5)
     rwordnet (0.1.3)
+    seer (0.10.0)
     selenium-webdriver (2.15.0)
       childprocess (>= 0.2.1)
       ffi (~> 1.0.9)
@@ -158,6 +160,7 @@ DEPENDENCIES
   engtagger
   expertiza-authlogic (~> 2.1.6.1)
   fastercsv
+  gchart
   gchartrb
   gdata
   gherkin (~> 2.7.6)
@@ -175,5 +178,6 @@ DEPENDENCIES
   ruby-debug
   rubyzip
   rwordnet
+  seer
   stanford-core-nlp
   stemmer

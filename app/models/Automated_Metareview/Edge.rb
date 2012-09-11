@@ -1,16 +1,16 @@
 #require 'vertex'
 #include Vertex
 class Edge
-  attr_accessor :edgeID, :type, :name, :index, :inVertex, :outVertex, :edgeMatch, :averageMatch, :frequency, :label
+  attr_accessor :edgeID, :type, :name, :index, :in_vertex, :out_vertex, :edge_match, :average_match, :frequency, :label
   
-  def initialize(edgeName, edgeType)
-    @name = edgeName
-    @type = edgeType #1 - verb, 2 - adjective, 3-adverb 
-    @averageMatch = 0.0 #initializing match to 0
+  def initialize(edge_name, edge_type)
+    @name = edge_name
+    @type = edge_type #1 - verb, 2 - adjective, 3-adverb 
+    @average_match = 0.0 #initializing match to 0
     @frequency = 0  
     #initializing the number of matches for each metric value to 0
-    @edgeMatch = Array.new
-    @edgeMatch = [0, 0, 0, 0, 0]
+    @edge_match = Array.new
+    @edge_match = [0, 0, 0, 0, 0]
   end
 end
 

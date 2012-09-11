@@ -135,5 +135,9 @@ end
     @user = User.find(@userid)
     
   end
+  
+  def automated_metareview_details_popup
+    @type = params[:type]
+  end
 
 end

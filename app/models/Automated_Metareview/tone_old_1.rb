@@ -3,7 +3,7 @@ require 'Automated_Metareview/wordnet_based_similarity'
 require 'Automated_Metareview/constants'
 
 class Tone
-  def identify_tone(pos_tagger, core_NLP_tagger, review_text, review_graph)
+  def identify_tone(pos_tagger, core_NLP_tagger, review_text)
     
     speller = Aspell.new("en_US")
     speller.suggestion_mode = Aspell::NORMAL
@@ -33,11 +33,10 @@ class Tone
     negative = negative + NEGATIVE_DESCRIPTORS
     #puts "negative list:: #{negative}"
     
-    # g = GraphGenerator.new
-    # g.generate_graph(review_text, pos_tagger, core_NLP_tagger, false, false)
-    review_edges = review_graph.edges
-    
+    g = GraphGenerator.new
+    g.generate_graph(review_text, pos_tagger, core_NLP_tagger, false, false)
     wbsim = WordnetBasedSimilarity.new
+    review_edges = g.edges
     in_feature = Array.new
     out_feature = Array.new
     review_edges.each{
@@ -96,7 +95,7 @@ class Tone
     feature_vector = [0, 0] #initializing          
     #look for the presence of token in positive set
     puts "** checking positive"
-    if(positive.include?(vertex.name.downcase))
+    if(in_set(positive, vertex.name.downcase, speller))
       feature_vector[0] = 1 #
     else 
       #recursively check for synonyms of token in the positive set
@@ -105,21 +104,15 @@ class Tone
       synonym_sets = get_synonyms(vertex, threshold, speller) #gets upto 'threshold' levels of synonms in a double dimensional array
       synonym_sets.each{
         |set|  
-        # synonyms = set
-        # synonyms.each{
-          # |syn|
-          # if(in_set(positive, syn, speller))
-            # feature_vector[0] = 1/distance
-            # flag = 1
-            # break
-          # end  
-        # }
-        
-        if(positive.length - (positive - set).length > 0)
-          feature_vector[0] = 1/distance
-          flag = 1
-        end
-          
+        synonyms = set
+        synonyms.each{
+          |syn|
+          if(in_set(positive, syn, speller))
+            feature_vector[0] = 1/distance
+            flag = 1
+            break
+          end  
+        }
         if(flag == 1)
           break #break out of the loop
         end
@@ -129,7 +122,7 @@ class Tone
       
     # repeat above with negative set
     puts "** checking negative"
-    if(negative.include?(vertex.name.downcase))
+    if(in_set(negative, vertex.name.downcase, speller))
       feature_vector[1] = 1 #
     else 
       #recursively check for synonyms of token in the positive set
@@ -139,49 +132,43 @@ class Tone
       if(!synonym_sets[1].empty?)#i.e. if there were no synonyms identified for the token avoid rechecking for [0] - since that contains the original token
         synonym_sets.each{
           |set|  
-          # synonyms = set
-          # synonyms.each{
-            # |syn|
-            # if(negative.include?(syn))
-              # feature_vector[1] = 1/distance
-              # flag = 1
-              # break
-            # end  
-          # }
-          if(negative.length - (negative - set).length > 0)
-            feature_vector[1] = 1/distance
-            flag = 1
-          end
-          
+          synonyms = set
+          synonyms.each{
+            |syn|
+            if(in_set(negative, syn, speller))
+              feature_vector[1] = 1/distance
+              flag = 1
+              break
+            end  
+          }
           if(flag == 1)
             break #break out of the loop
           end
           distance+=1 #incrementing to check synonyms in the next level
-        } #end of loop for synonym sets
+        }
       end
-    end #end of if condition
-    
+    end
     return feature_vector
   end
 #--------  
 =begin
  Compares token with every word in the positive or negative opinion lexicon set 
 =end
-  # def in_set(set, token, speller)
-    # wbsim = WordnetBasedSimilarity.new
-    # # token_stem = wbsim.find_stem_word(token, speller)
-    # puts "***looking for #{token}"#..stem #{token_stem}"
-    # set.each{
-      # |ele|
-      # #eleStem = wbsim.find_stem_word(ele, speller)
-      # #puts "comparing with #{ele.downcase}"
-      # if(ele.downcase == token) #or ele.downcase == token_stem or eleStem == token or eleStem == token_stem)
-        # puts "## match found for #{token}.. ele - #{ele}"#"..stem #{eleStem}"
-        # return true #indicates presence
-      # end
-    # }
-    # return false #indicates absence
-  # end
+  def in_set(set, token, speller)
+    wbsim = WordnetBasedSimilarity.new
+    token_stem = wbsim.find_stem_word(token, speller)
+    puts "***looking for #{token}..stem #{token_stem}"
+    set.each{
+      |ele|
+      eleStem = wbsim.find_stem_word(ele, speller)
+      #puts "comparing with #{ele.downcase}"
+      if(ele.downcase == token or ele.downcase == token_stem or eleStem == token or eleStem == token_stem)
+        puts "## match found for #{token}.. ele - #{ele}..stem #{eleStem}"
+        return true #indicates presence
+      end
+    }
+    return false #indicates absence
+  end
 #--------
 =begin
  getSynonyms - gets synonyms for vertex - upto 'threshold' levels of synonyms
@@ -194,15 +181,10 @@ class Tone
   def get_synonyms(vertex, threshold, speller)
     #puts "Inside getSynonyms"
     wbsim = WordnetBasedSimilarity.new
-    if(vertex.pos_tag.nil?)
-      pos = wbsim.determine_POS(vertex)
-    else
-      pos = vertex.pos_tag
-    end
+    pos = wbsim.determine_POS(vertex)
     
     revSyn = Array.new(threshold+1){Array.new} #contains synonyms for the different levels
-    revSyn[0] << vertex.name.downcase.split(" ")[0] #holds the array of tokens whose synonyms are to be identified, 
-    # and what if the vertex had a long phrase
+    revSyn[0] << vertex.name.downcase #holds the array of tokens whose synonyms are to be identified
     #at first level '0' is the token itself
     i = 0
     while i < threshold do
@@ -221,7 +203,6 @@ class Tone
             lemma = l
           end  
         end
-        
         #puts "selected lemma - #{lemma}"
         #error handling for lemmas's without synsets that throw errors! (likely due to the dictionary file we are using)
         begin #error handling
@@ -235,8 +216,7 @@ class Tone
             rev_lemma_syns = review_lemma_synset.get_relation("&")
             #for each synset get the values and add them to the array
             for h in 0..rev_lemma_syns.length - 1
-              #incrementing the array with new synonym words
-              list_new = list_new + rev_lemma_syns[h].words
+              list_new[0] = rev_lemma_syns[h].words
               #puts"revLemmaSyns[h].words #{revLemmaSyns[h].words} #{revLemmaSyns[h].words.class}"
             end
           end 
@@ -252,7 +232,7 @@ class Tone
       end
       puts "synonyms in level #{i} are #{list_new[0]}"
       i+=1 #level is incremented
-      revSyn[i] = list_new #setting synonyms
+      revSyn[i] = list_new[0] #setting synonyms
     end
     return revSyn
   end

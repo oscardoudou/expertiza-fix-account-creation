@@ -61,6 +61,17 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "assignments", ["review_questionnaire_id"], :name => "fk_assignments_review_questionnaires"
   add_index "assignments", ["wiki_type_id"], :name => "fk_assignments_wiki_types"
 
+  create_table "automated_metareviews", :force => true do |t|
+    t.text     "relevance"
+    t.text     "content"
+    t.text     "tone"
+    t.text     "quantity"
+    t.text     "plagiarism"
+    t.text     "response_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
   create_table "comments", :force => true do |t|
     t.integer "participant_id", :default => 0,     :null => false
     t.boolean "private",        :default => false, :null => false
@@ -239,9 +250,9 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "question_advices", ["question_id"], :name => "fk_question_question_advices"
 
   create_table "question_types", :force => true do |t|
-    t.string  "q_type",      :default => "", :null => false
+    t.string  "q_type",                     :null => false
     t.string  "parameters"
-    t.integer "question_id", :default => 1,  :null => false
+    t.integer "question_id", :default => 1, :null => false
   end
 
   add_index "question_types", ["question_id"], :name => "fk_question_type_question"
@@ -257,8 +268,8 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.integer  "default_num_choices"
     t.string   "type"
     t.string   "display_type"
-    t.text     "instruction_loc"
     t.string   "section"
+    t.text     "instruction_loc"
   end
 
   create_table "questions", :force => true do |t|
@@ -289,6 +300,15 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   end
 
   add_index "responses", ["map_id"], :name => "fk_response_response_map"
+
+  create_table "responses_duplicate", :id => false, :force => true do |t|
+    t.integer  "id",                 :default => 0, :null => false
+    t.integer  "map_id",             :default => 0, :null => false
+    t.text     "additional_comment"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "version_num"
+  end
 
   create_table "resubmission_times", :force => true do |t|
     t.integer  "participant_id"
@@ -363,9 +383,9 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "sessions", ["updated_at"], :name => "index_sessions_on_updated_at"
 
   create_table "sign_up_topics", :force => true do |t|
-    t.text    "topic_name",                     :null => false
-    t.integer "assignment_id",                  :null => false
-    t.integer "max_choosers",                   :null => false
+    t.text    "topic_name",                                    :null => false
+    t.integer "assignment_id",                  :default => 0, :null => false
+    t.integer "max_choosers",                   :default => 0, :null => false
     t.text    "category"
     t.string  "topic_identifier", :limit => 10
   end
@@ -373,9 +393,9 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "sign_up_topics", ["assignment_id"], :name => "fk_sign_up_categories_sign_up_topics"
 
   create_table "signed_up_users", :force => true do |t|
-    t.integer "topic_id",                   :null => false
-    t.integer "creator_id",                 :null => false
-    t.boolean "is_waitlisted",              :null => false
+    t.integer "topic_id",                   :default => 0,     :null => false
+    t.integer "creator_id",                 :default => 0,     :null => false
+    t.boolean "is_waitlisted",              :default => false, :null => false
     t.integer "preference_priority_number"
   end
 
@@ -400,7 +420,7 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   create_table "suggestions", :force => true do |t|
     t.integer "assignment_id"
     t.string  "title"
-    t.string  "description",       :limit => 750
+    t.text    "description"
     t.string  "status"
     t.string  "unityID"
     t.string  "signup_preference"
@@ -412,6 +432,7 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.datetime "end_date"
     t.integer  "num_of_students"
     t.datetime "last_reminder"
+    t.integer  "course_id",            :default => 0, :null => false
   end
 
   create_table "survey_participants", :force => true do |t|
@@ -428,10 +449,6 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.string  "email"
     t.integer "survey_deployment_id"
   end
-
-  add_index "survey_responses", ["assignment_id"], :name => "fk_survey_assignments"
-  add_index "survey_responses", ["question_id"], :name => "fk_survey_questions"
-  add_index "survey_responses", ["survey_id"], :name => "fk_survey_questionnaires"
 
   create_table "system_settings", :force => true do |t|
     t.string  "site_name",                 :default => "", :null => false
@@ -463,7 +480,7 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
 
   create_table "teams", :force => true do |t|
     t.string  "name"
-    t.integer "parent_id",                  :default => 0, :null => false
+    t.integer "parent_id"
     t.string  "type"
     t.text    "comments_for_advertisement"
     t.boolean "advertise_for_partner"
@@ -490,6 +507,8 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.integer  "round"
   end
 
+  add_index "topic_deadlines", ["deadline_type_id"], :name => "fk_deadline_type_topic_deadlines"
+  add_index "topic_deadlines", ["late_policy_id"], :name => "fk_topic_deadlines_late_policies"
   add_index "topic_deadlines", ["rereview_allowed_id"], :name => "idx_rereview_allowed"
   add_index "topic_deadlines", ["resubmission_allowed_id"], :name => "idx_resubmission_allowed"
   add_index "topic_deadlines", ["review_allowed_id"], :name => "idx_review_allowed"
@@ -498,8 +517,8 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "topic_deadlines", ["topic_id"], :name => "fk_topic_deadlines_topics"
 
   create_table "topic_dependencies", :force => true do |t|
-    t.integer "topic_id",     :null => false
-    t.string  "dependent_on", :null => false
+    t.integer "topic_id",     :default => 0,  :null => false
+    t.string  "dependent_on", :default => "", :null => false
   end
 
   create_table "tree_folders", :force => true do |t|
@@ -521,8 +540,8 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.boolean "email_on_review"
     t.boolean "email_on_submission"
     t.boolean "email_on_review_of_review"
-    t.boolean "is_new_user",                              :default => true
-    t.boolean "master_permission_granted"
+    t.boolean "is_new_user",                              :default => true,  :null => false
+    t.integer "master_permission_granted", :limit => 1,   :default => 0
     t.string  "handle"
     t.boolean "leaderboard_privacy",                      :default => false
     t.text    "digital_certificate"

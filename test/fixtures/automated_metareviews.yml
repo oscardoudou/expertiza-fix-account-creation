@@ -1,0 +1,15 @@
+# Read about fixtures at http://ar.rubyonrails.org/classes/Fixtures.html
+
+one:
+  relevance: 
+  content: 
+  tone: 
+  quantity: 
+  plagiarism: 
+
+two:
+  relevance: 
+  content: 
+  tone: 
+  quantity: 
+  plagiarism: 

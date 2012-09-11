@@ -1,0 +1,62 @@
+April 23rd 2012
+===============
+Learning to develop on ruby on rails:
+1. Create a new application - demo_app
+1a. rails demo_app and not 'rails new demo_app'
+2. Differences exist between git and github!
+3. Scaffolding in rails 2.3.15
+ruby script/generate scaffold Automated_Metareview relevance:String content:String tone:String quantity:String plagiarism:String
+ruby script/destroy … - to undo changes
+4. rake db:migrate - to migrate the new model's features
+rake db:rollback - to undo changes
+5. Making changes to automated_metareviews model, with additional files (converting them to modules to ease addition to the models' code).
+
+April 28th 2012
+===============
+1. Passing map.id as a parameter to the automated_metareviews controller, which then pulls the corresponding response and passes it as a parameter to the perform_metareviews() method in the automated_metareviews controller.
+2. Included gems 'engager' and 'postagger' in the gem file, instead of 'requiring' them in each of the files.
+
+May 5th 2012:
+=============
+1. I created the automated_metareviews table with 'id' as primary key and auto_increment.
+
+-- create table automated_metareviews(id integer not null auto_increment, relevance text, content text, tone text, quantity text, plagiarism text, response_id integer, version_num integer, primary key(id));
+
+2. I also added a 'version_num' column to help maintain versioning across the different automated_metareviews saved for a single response.
+
+May 6th 2012:
+=============
+1. I added the link to the student review listing page for the current assignment using the 'button_to' method.
+2. The way the automated_metareviews is created is as follows:
+a) When the reviewer writes and submits a review, the automated_metareview controller calls the model to determine the metareview features and then lists them out to the reviewer using the /automated_metareviews/list.html.erb file.
+b) At this point, this version of the metareview is saved with the version number being 'max + 1' of the version number for that response.
+c) The reviewer (when on the list.html.erb page) has two options - (i) to get back to the reviews page and edit the review further, or (ii) to continue to the reviews listing page for the current assignment.
+
+May 8th 2012: (TESTING)
+=============
+1. While generating the model using scaffolding, the controller's page gets added to /views/layouts and as a result uses its own layout rather than the default one that the application uses. Deleting the 'automated_metareviews.html.erb' file from under /views/layouts gets it to use the default layout.
+2. Refactoring local variable names and method names with underscores instead of the camel style that I have used!
+3. Writing unit tests for the code in automated_metareview model. Test file in test/unit/ folder.
+Tests run using the command 'ruby -Itest test/unit/automated_metareview_test.rb'
+
+May 16th 2012:
+==============
+1. Editing the 'automate_metareviews' table to include the values for each of the content types individually (summative, problem detection, advisory) as well as for each tone type (positive, negative and neutral).
+2. Using the following create table statement:
+
+create table automated_metareviews(id integer not null auto_increment, relevance float, content_summative float, content_problem float, content_advisory float, tone_positive float, tone_negative float, tone_neutral float, quantity integer, plagiarism boolean, response_id integer, version_num integer, primary key(id));
+
+3. Added queries to the list.html.erb page to list the average values for each of the metareview features from among exiting metareviews.
+4. Trying to work with a gem called 'seer' that helps generate graphs on the view. (reference: http://www.idolhands.com/ruby-on-rails/rails-gems-plugins-and-engines/simple-semantic-charts-and-graphs-for-ruby-on-rails-with-seer)
+Had trouble with running it after installing gem. The gem's reference needs to be added to the "GEMFILE".
+
+May 17th 2012:
+==============
+1. Using google charts instead of seer since it is easy to implement. The graph is initialized and implemented in the controller and a reference used in the view It is inserted as an image.
+
+
+September 10th 2012:
+====================
+1. Fix the controllers setup on the 'admin' page on expertiza to allow popups to have 'do assignments' and not 'administer assignments' functionality, since we may be using popups for metareview metrics info.
+
+

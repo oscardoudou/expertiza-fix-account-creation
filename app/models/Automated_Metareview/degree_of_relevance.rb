@@ -1,116 +1,136 @@
-require 'Automated_Metareview/wordnetBasedSimilarity'
-require 'Automated_Metareview/graphGenerate'
+require 'Automated_Metareview/wordnet_based_similarity'
+require 'Automated_Metareview/graph_generator'
 
 class DegreeOfRelevance
-  
 #creating accessors for the instance variables
-attr_accessor :vertexMatch
-@@Edges = Array.new
+attr_accessor :vertex_match
+attr_accessor :review
 =begin
   Identifies relevance between a review and a submission
 =end  
-def getRelevance(reviews, submissions, numReviews, posTagger, coreNLPTagger) #double dimensional arrays that contain the submissions and the reviews respectively
-  reviewVertices = nil
-  reviewEdges = nil
-  submVertices = nil
-  submEdges = nil
-  numRevVert = 0
-  numRevEdg = 0 
-  numSubVert = 0 
+def get_relevance(reviews, submissions, num_reviews, pos_tagger, core_NLP_tagger) #double dimensional arrays that contain the submissions and the reviews respectively
+  review_vertices = nil
+  review_edges = nil
+  subm_vertices = nil
+  subm_edges = nil
+  num_rev_vert = 0
+  num_rev_edg = 0 
+  num_sub_vert = 0 
   numSubEdg = 0
-  vertMatch = 0.0
-  edgeWithoutSyn = 0.0
-  edgeWithSyn = 0.0
-  edgeDiffType = 0.0
-  doubleEdge = 0.0
-  doubleEdgeWithSyn = 0.0
-  plagiarism = false
+  vert_match = 0.0
+  edge_without_syn = 0.0
+  edge_with_syn = 0.0
+  edge_diff_type = 0.0
+  double_edge = 0.0
+  double_edge_with_syn = 0.0
   
     #since Reviews and Submissions "should" contain the same number of records review - submission pairs
-    g = Graphgenerator.new
+    g = GraphGenerator.new
     #generating review's graph
-    g.generateGraph(reviews, posTagger, coreNLPTagger, true, false)
-    reviewVertices = g.vertices
-    reviewEdges = g.edges
-    numRevVert = g.numVertices
-    numRevEdg = g.numEdges
+    g.generate_graph(reviews, pos_tagger, core_NLP_tagger, true, false)
+    review_vertices = g.vertices
+    review_edges = g.edges
+    num_rev_vert = g.num_vertices
+    num_rev_edg = g.num_edges
     
-    #declaring constants that can be used for class prediction
-    @@Edges = g.edges
+    #assigning graph as a review graph to use in content classification
+    @review = g.clone
       
     #generating the submission's graph
-    g.generateGraph(submissions, posTagger, coreNLPTagger, true, false)
-    submVertices = g.vertices
-    submEdges = g.edges
-    numSubVert = g.numVertices
-    numSubEdg = g.numEdges
+    g.generate_graph(submissions, pos_tagger, core_NLP_tagger, true, false)
+    subm_vertices = g.vertices
+    subm_edges = g.edges
+    num_sub_vert = g.num_vertices
+    num_sub_edg = g.num_edges
       
-    vertMatch = compareVertices(posTagger, reviewVertices, submVertices, numRevVert, numSubVert)
-    edgeWithoutSyn = compareEdgesnNonSyntaxDiff(reviewEdges, submEdges, numRevEdg, numSubEdg)
-    edgeWithSyn = compareEdgesSyntaxDiff(reviewEdges, submEdges, numRevEdg, numSubEdg)
-    edgeDiffType = compareEdgesDiffTypes(reviewEdges, submEdges, numRevEdg, numSubEdg)
-    edgeMatch = (edgeWithoutSyn + edgeWithSyn + edgeDiffType)/3
-    doubleEdge = compareSVOEdges(reviewEdges, submEdges, numRevEdg, numSubEdg)
-    doubleEdgeWithSyn = compareSVODiffSyntax(reviewEdges, submEdges, numRevEdg, numSubEdg)
-    doubleEdgeMatch = (doubleEdge + doubleEdgeWithSyn)/2
+    vert_match = compare_vertices(pos_tagger, review_vertices, subm_vertices, num_rev_vert, num_sub_vert)
+    if(num_rev_edg > 0 and num_sub_edg > 0)
+      edge_without_syn = compare_edges_non_syntax_diff(review_edges, subm_edges, num_rev_edg, num_sub_edg)
+      edge_with_syn = compare_edges_syntax_diff(review_edges, subm_edges, num_rev_edg, num_sub_edg)
+      edge_diff_type = compare_edges_diff_types(review_edges, subm_edges, num_rev_edg, num_sub_edg)
+      edge_match = (edge_without_syn.to_f + edge_with_syn.to_f )/2.to_f #+ edge_diff_type.to_f
+      double_edge = compare_SVO_edges(review_edges, subm_edges, num_rev_edg, num_sub_edg)
+      double_edge_with_syn = compare_SVO_diff_syntax(review_edges, subm_edges, num_rev_edg, num_sub_edg)
+      double_edge_match = (double_edge.to_f + double_edge_with_syn.to_f)/2.to_f
+    else
+      edge_match = 0
+      double_edge_match = 0
+    end
       
     #differently weighted cases
     #tweak this!!
     alpha = 0.55
     beta = 0.35
     gamma = 0.1 #alpha > beta > gamma
-    relevance = (alpha.to_f * vertMatch) + (beta * edgeMatch) + (gamma * doubleEdgeMatch) #case1's value will be in the range [0-6] (our semantic values) 
- 
-    puts("vertexMatch is: #{vertMatch}")
-    puts("edgeWithoutSyn Match is:: #{edgeWithoutSyn}")
-    puts("edgeWithSyn Match is:: #{edgeWithSyn}")
-    puts("edgeDiffType Match is:: #{edgeDiffType}")
-    puts("doubleEdge Match is:: #{doubleEdge}")
-    puts("doubleEdge with syntax Match is:: #{doubleEdgeWithSyn}")
-    puts("relevance:: #{relevance}")
+    relevance = (alpha.to_f * vert_match.to_f) + (beta * edge_match.to_f) + (gamma * double_edge_match.to_f) #case1's value will be in the range [0-6] (our semantic values) 
+    scaled_relevance = relevance.to_f/6.to_f #scaled from [0-6] in the range [0-1]
+    
+    #printing values
+    puts("vertexMatch is [0-6]:: #{vert_match}")
+    puts("edgeWithoutSyn Match is [0-6]:: #{edge_without_syn}")
+    puts("edgeWithSyn Match is [0-6]:: #{edge_with_syn}")
+    puts("edgeDiffType Match is [0-6]:: #{edge_diff_type}")
+    puts("doubleEdge Match is [0-6]:: #{double_edge}")
+    puts("doubleEdge with syntax Match is [0-6]:: #{double_edge_with_syn}")
+    puts("relevance [0-6]:: #{relevance}")
+    puts("scaled relevance on [0-1]:: #{scaled_relevance}")
     puts("*************************************************")
-    return relevance
+    return scaled_relevance
 end  
 =begin
    * every vertex is compared with every other vertex
    * Compares the vertices from across the two graphs to identify matches and quantify various metrics
    * v1- vertices of the submission/past review and v2 - vertices from new review 
 =end
-def compareVertices(posTagger, rev, subm, numRevVert, numSubVert)
-  puts("****Inside compareVertices:: rev.length:: #{numRevVert} subm.length:: #{numSubVert}")
+def compare_vertices(pos_tagger, rev, subm, num_rev_vert, num_sub_vert)
+  puts("****Inside compare_vertices:: rev.length:: #{num_rev_vert} subm.length:: #{num_sub_vert}")
+  
   #for double dimensional arrays, one of the dimensions should be initialized
-  @vertexMatch = Array.new(numRevVert){Array.new}
+  @vertex_match = Array.new(num_rev_vert){Array.new}
   wnet = WordnetBasedSimilarity.new
-  cumVertexMatch = 0.0
+  cum_vertex_match = 0.0
   count = 0
   max = 0.0
   flag = 0
+  
+  speller = Aspell.new("en_US")
+  speller.suggestion_mode = Aspell::NORMAL
     
-  for i in (0..numRevVert - 1) #(int i = 0;i < numRevVert; i++){
+  for i in (0..num_rev_vert - 1)
     if(!rev.nil? and !rev[i].nil?)
-      rev[i].nodeID = i
+      puts("%%%%%%%%%%% Token #{rev[i].name} ::: POS tags:: rev[i].pos_tag:: #{rev[i].pos_tag}")
+      rev[i].node_id = i
       #skipping frequent words from vertex comparison
-      if(wnet.isFrequentWord(rev[i].name))
+      if(wnet.is_frequent_word(rev[i].name))
         puts("Skipping frequent word:: #{rev[i].name}")
         next #ruby equivalent for continue 
       end
       #looking for the best match
       #j tracks every element in the set of all vertices, some of which are null
-      for j in (0..numSubVert - 1)
+      for j in (0..num_sub_vert - 1)
         if(!subm[j].nil?)
-          subm[j].nodeID = j #node id for submissions is given using 'subCount'
-          @vertexMatch[i][j] = wnet.compareStrings(rev[i], subm[j])          
-          #only if the "if" condition is satisfied, since there could be null objects in between and you dont want unnecess. increments
-          flag = 1
-          if(@vertexMatch[i][j] > max)
-            max = @vertexMatch[i][j]
+          if(wnet.is_frequent_word(subm[j].name))
+            puts("Skipping frequent word:: #{subm[j].name}")
+            next #ruby equivalent for continue 
           end
-            puts(@vertexMatch[i][j])
+          puts("%%%%%%%%%%% Token #{subm[j]} ::: POS tags:: subm[j].pos_tag:: #{subm[j].pos_tag}")
+          #comparing only if one of the two vertices is a noun
+          if(rev[i].pos_tag.include?("NN") or subm[j].pos_tag.include?("NN"))
+            subm[j].node_id = j
+            @vertex_match[i][j] = wnet.compare_strings(rev[i], subm[j], speller)    
+            #only if the "if" condition is satisfied, since there could be null objects in between and you dont want unnecess. increments
+            flag = 1
+            if(@vertex_match[i][j] > max)
+              max = @vertex_match[i][j]
+            end
+              puts(@vertex_match[i][j])
+          end
         end
-      end #end of for loops
+      end #end of for loop for the submission vertices
+      
       if(flag != 0)#if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
         puts("**** Best match for:: #{rev[i].name}-- #{max}")
-        cumVertexMatch = cumVertexMatch + max
+        cum_vertex_match = cum_vertex_match + max
         count+=1
         max = 0.0 #re-initialize
         flag = 0
@@ -118,14 +138,14 @@ def compareVertices(posTagger, rev, subm, numRevVert, numSubVert)
     end #end of if condition
   end #end of for loop
 
-  avgMatch = 0.0
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumVertexMatch/ count
+    avg_match = cum_vertex_match/ count
   end
   
-  puts("Cumulative vertex match:: #{avgMatch}")
-  return avgMatch  
-end #end of compareVertices
+  puts("Cumulative vertex match:: #{avg_match}")
+  return avg_match  
+end #end of compare_vertices
 
 #------------------------------------------#------------------------------------------
 =begin 
@@ -134,65 +154,94 @@ end #end of compareVertices
    * compare SUBJECT-VERB edges with SUBJECT-VERB matches
    * where SUBJECT-SUBJECT and VERB-VERB or VERB-VERB and OBJECT-OBJECT comparisons are done
 =end
-def compareEdgesnNonSyntaxDiff( rev, subm, numRevEdg, numSubEdg)
-  puts("*****Inside compareEdgesnNonSyntaxDiff numRevEdg:: #{numRevEdg} numSubEdg:: #{numSubEdg}")   
-  bestSV_SVMatch = Array.new(numRevEdg){Array.new}
-  cumEdgeMatch = 0.0
+def compare_edges_non_syntax_diff(rev, subm, num_rev_edg, num_sub_edg)
+  puts("*****Inside compareEdgesnNonSyntaxDiff numRevEdg:: #{num_rev_edg} numSubEdg:: #{num_sub_edg}")   
+  best_SV_SV_match = Array.new(num_rev_edg){Array.new}
+  cum_edge_match = 0.0
   count = 0
   max = 0.0
   flag = 0
+  
   wnet = WordnetBasedSimilarity.new
-  for i in (0..numRevEdg - 1) #(int i = 0;i < numRevEdg; i++){
-    if(!rev[i].nil? and rev[i].inVertex.nodeID != -1 and rev[i].outVertex.nodeID != -1)
+  for i in (0..num_rev_edg - 1)
+    if(!rev[i].nil? and rev[i].in_vertex.node_id != -1 and rev[i].out_vertex.node_id != -1)
     #skipping edges with frequent words for vertices
-    if(wnet.isFrequentWord(rev[i].inVertex.name) and wnet.isFrequentWord(rev[i].outVertex.name))
-      puts("Skipping edge::#{rev[i].inVertex.name} - #{rev[i].outVertex.name}")
+    if(wnet.is_frequent_word(rev[i].in_vertex.name) and wnet.is_frequent_word(rev[i].out_vertex.name))
+      puts("Skipping edge::#{rev[i].in_vertex.name} - #{rev[i].out_vertex.name}")
       next
     end
+    
     #looking for best matches
-    for j in (0..numSubEdg - 1) #(int j = 0; j < numSubEdg; j++){
+    for j in (0..num_sub_edg - 1)
       #comparing in-vertex with out-vertex to make sure they are of the same type
-      if(!subm[j].nil? && subm[j].inVertex.nodeID != -1 && subm[j].outVertex.nodeID != -1)
-        if(rev[i].inVertex.type == subm[j].inVertex.type && rev[i].outVertex.type == subm[j].outVertex.type)
-          puts("rev[i].inVertex.name #{rev[i].inVertex.name} and subm[j].inVertex.name #{subm[j].inVertex.name} ::val:: #{@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID]}")
-          puts("rev[i].outVertex.name #{rev[i].outVertex.name} && subm[j].outVertex.name #{subm[j].outVertex.name} ::val:: #{@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID]}")
+      if(!subm[j].nil? && subm[j].in_vertex.node_id != -1 && subm[j].out_vertex.node_id != -1)
+        
+        #checking if the subm token is a frequent word
+        if(wnet.is_frequent_word(subm[j].in_vertex.name) and wnet.is_frequent_word(subm[j].out_vertex.name))
+          puts("Skipping edge::#{subm[j].in_vertex.name} - #{subm[j].out_vertex.name}")
+          next
+        end     
+              
+        #carrying out the normal comparison
+        if(rev[i].in_vertex.type == subm[j].in_vertex.type && rev[i].out_vertex.type == subm[j].out_vertex.type)
+          puts("rev[i].in_vertex.name #{rev[i].in_vertex.name} and subm[j].in_vertex.name #{subm[j].in_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]}")
+          puts("rev[i].out_vertex.name #{rev[i].out_vertex.name} && subm[j].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}")
           if(!rev[i].label.nil?)
             puts("rev[i].label #{rev[i].label}")
             if(!subm[j].label.nil?)
               puts("subm[j].label #{subm[j].label}")
+              #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+              sum = 0.0
+              cou = 0
+              if(!@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+                sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]
+                cou +=1
+              end
+              if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+                sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]
+                cou +=1
+              end  
+            
               #--Only vertex matches
-              bestSV_SVMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID] + @vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID])/2
-              #--Vertex and SRL
-              bestSV_SVMatch[i][j] = bestSV_SVMatch[i][j]/ compareLabels(rev[i], subm[j])
-              #--Only SRL matches
-              #bestSV_SVMatch[i][j] = (double)compareLabels(rev[i].label, subm[j].label);
+              if(cou > 0)
+                best_SV_SV_match[i][j] = sum.to_f/cou.to_f
+              else
+                best_SV_SV_match[i][j] = 0.0
+              end
+                
+              #--Vertex and SRL - Dividing it by the label's match value
+              best_SV_SV_match[i][j] = best_SV_SV_match[i][j]/ compare_labels(rev[i], subm[j])
               
               flag = 1
-              if(bestSV_SVMatch[i][j] > max)
-                max = bestSV_SVMatch[i][j]
+              if(best_SV_SV_match[i][j] > max)
+                max = best_SV_SV_match[i][j]
               end
             end
           end
         end
       end
-    end #end of for loop for 'j'
-        
+      #puts "max .. #{max}"
+    end #end of for loop for the submission edges
+    
+    #cumulating the review edges' matches in order to get its average value
     if(flag != 0) #if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
-      puts("**** Best match for:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} -- #{max}")
-      cumEdgeMatch = cumEdgeMatch + max
+      puts("**** Best match for:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} -- #{max}")
+      cum_edge_match = cum_edge_match + max
       count+=1
       max = 0.0#re-initialize
       flag = 0
       end
     end
-  end #end of 'for' loop for 'i'
-  avgMatch = 0.0
+  end #end of 'for' loop for the review's edges
+  
+  #getting the average for all the review edges' matches with the submission's edges
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumEdgeMatch/ count
+    avg_match = cum_edge_match/ count
   end
   
-  puts("Cumulative edge (without syn) match:: #{avgMatch}")
-  return avgMatch
+  puts("Cumulative edge (without syn) match:: #{avg_match}")
+  return avg_match
 end
 #------------------------------------------#------------------------------------------
 =begin
@@ -202,54 +251,65 @@ end
    * where SUBJECT-OBJECT and VERB_VERB comparisons are done - same type comparisons!!
 =end
 
-def compareEdgesSyntaxDiff(rev, subm, numRevEdg, numSubEdg)
-  puts("*****Inside compareEdgesSyntaxDiff :: numRevEdg :: #{numRevEdg} numSubEdg:: #{numSubEdg}")    
-  bestSV_VSMatch = Array.new(numRevEdg){Array.new}
-  cumEdgeMatch = 0.0
+def compare_edges_syntax_diff(rev, subm, num_rev_edg, num_sub_edg)
+  puts("*****Inside compareEdgesSyntaxDiff :: numRevEdg :: #{num_rev_edg} numSubEdg:: #{num_sub_edg}")    
+  best_SV_VS_match = Array.new(num_rev_edg){Array.new}
+  cum_edge_match = 0.0
   count = 0
   max = 0.0
   flag = 0
   wnet = WordnetBasedSimilarity.new  
-  for i in (0..numRevEdg - 1)#(int i = 0;i < numRevEdg; i++){
-    if(!rev[i].nil? and rev[i].inVertex.nodeID != -1 and rev[i].outVertex.nodeID != -1)
+  for i in (0..num_rev_edg - 1)
+    if(!rev[i].nil? and rev[i].in_vertex.node_id != -1 and rev[i].out_vertex.node_id != -1)
       
       #skipping frequent word
-      if(wnet.isFrequentWord(rev[i].inVertex.name) and wnet.isFrequentWord(rev[i].outVertex.name))
-        puts("Skipping edge:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name}")
+      if(wnet.is_frequent_word(rev[i].in_vertex.name) and wnet.is_frequent_word(rev[i].out_vertex.name))
+        puts("Skipping edge:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name}")
         next
       end
       
-      for j in (0..numSubEdg - 1) #(int j = 0; j < numSubEdg; j++)
-        if(!subm[j].nil? and subm[j].inVertex.nodeID != -1 and subm[j].outVertex.nodeID != -1)
-          if(rev[i].inVertex.type == subm[j].outVertex.type and rev[i].outVertex.type == subm[j].inVertex.type and
-            !@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID].nil? and !@vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID].nil?)
-            puts("rev[i].inVertex.name #{rev[i].inVertex.name} && subm[j].outVertex.name #{subm[j].outVertex.name} ::val:: #{@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID]}")
-            puts("rev[i].outVertex.name #{rev[i].outVertex.name} && subm[j].inVertex.name #{subm[j].inVertex.name} ::val:: #{@vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID]}")
-            if(!rev[i].label.nil?)
-              puts("rev[i].label #{rev[i].label}")
+      for j in (0..num_sub_edg - 1)
+        if(!subm[j].nil? and subm[j].in_vertex.node_id != -1 and subm[j].out_vertex.node_id != -1)
+          
+          #checking if the subm token is a frequent word
+          if(wnet.is_frequent_word(subm[j].in_vertex.name) and wnet.is_frequent_word(subm[j].out_vertex.name))
+            puts("Skipping edge::#{subm[j].in_vertex.name} - #{subm[j].out_vertex.name}")
+            next
+          end 
+        
+          if(rev[i].in_vertex.type == subm[j].out_vertex.type and rev[i].out_vertex.type == subm[j].in_vertex.type)
+            puts("rev[i].in_vertex.name #{rev[i].in_vertex.name} && subm[j].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id]}")
+            puts("rev[i].out_vertex.name #{rev[i].out_vertex.name} && subm[j].in_vertex.name #{subm[j].in_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id]}")
+            #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+            sum = 0.0
+            cou = 0
+            if(!@vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id]
+              cou +=1
             end
-            if(!subm[j].label.nil?)
-              puts("subm[j].label #{subm[j].label}")
+            if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id]
+              cou +=1
+            end              
+            
+            if(cou > 0)
+              best_SV_VS_match[i][j] = sum.to_f/cou.to_f
+            else
+              best_SV_VS_match[i][j] = 0.0
             end
-            #--Only vertex matches
-            bestSV_VSMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID] + @vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID])/2
-            #--Vertex and SRL 
-            #**it is likely that these edges will always have different labels due to the nature and order of comparison of edges
-            #S-V edges are likely to be SUBJ while V-O edges could be OBJ and hence different labels are frequent
-            #bestSV_VSMatch[i][j] = (double)bestSV_VSMatch[i][j]/ (double)compareLabels(rev[i], subm[j]);
-            #--Only SRL
-            #bestSV_VSMatch[i][j] = (double)compareLabels(rev[i].label, subm[j].label);
+            
             flag = 1
-            if(bestSV_VSMatch[i][j] > max)
-              max = bestSV_VSMatch[i][j]
+            if(best_SV_VS_match[i][j] > max)
+              max = best_SV_VS_match[i][j]
             end
           end
         end #end of the if condition
+        #puts "max .. #{max}"
       end #end of the for loop for the submission edges     
           
       if(flag != 0)#if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
-        puts("**** Best match for:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name}-- #{max}")
-        cumEdgeMatch = cumEdgeMatch + max
+        puts("**** Best match for:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name}-- #{max}")
+        cum_edge_match = cum_edge_match + max
         count+=1
         max = 0.0 #re-initialize
         flag = 0
@@ -258,12 +318,12 @@ def compareEdgesSyntaxDiff(rev, subm, numRevEdg, numSubEdg)
     end #end of the if condition
   end #end of the for loop for the review
    
-  avgMatch = 0.0
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumEdgeMatch/count
+    avg_match = cum_edge_match.to_f/count.to_f
   end
-  puts("Cumulative edge (diff syntax) match:: #{avgMatch}")
-  return avgMatch
+  puts("Cumulative edge (diff syntax) match:: #{avg_match}")
+  return avg_match
 end  #end of the method
 #------------------------------------------#------------------------------------------
 =begin
@@ -272,77 +332,96 @@ end  #end of the method
    * compare SUBJECT-VERB edges with VERB-OBJECT matches and vice-versa
    * SUBJECT-VERB, VERB-SUBJECT, OBJECT-VERB, VERB-OBJECT comparisons are done! 
 =end
-def compareEdgesDiffTypes(rev, subm, numRevEdg, numSubEdg)
-  puts("*****Inside compareEdgesDiffTypes :: numRevEdg :: #{numRevEdg} numSubEdg:: #{numSubEdg}")   
-  bestSV_VSMatch = Array.new(numRevEdg){Array.new}
-  cumEdgeMatch = 0.0
+def compare_edges_diff_types(rev, subm, num_rev_edg, num_sub_edg)
+  puts("*****Inside compareEdgesDiffTypes :: numRevEdg :: #{num_rev_edg} numSubEdg:: #{num_sub_edg}")   
+  best_SV_VS_match = Array.new(num_rev_edg){Array.new}
+  cum_edge_match = 0.0
   count = 0
   max = 0.0
   flag = 0
   wnet = WordnetBasedSimilarity.new  
-  for i in (0..numRevEdg - 1) #(int i = 0;i < numRevEdg; i++){
-    if(!rev[i].nil? and rev[i].inVertex.nodeID != -1 and rev[i].outVertex.nodeID != -1)
+  for i in (0..num_rev_edg - 1)
+    if(!rev[i].nil? and rev[i].in_vertex.node_id != -1 and rev[i].out_vertex.node_id != -1)
       #skipping edges with frequent words for vertices
-      if(wnet.isFrequentWord(rev[i].inVertex.name) and wnet.isFrequentWord(rev[i].outVertex.name))
-        puts("Skipping edge:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name}")
+      if(wnet.is_frequent_word(rev[i].in_vertex.name) and wnet.is_frequent_word(rev[i].out_vertex.name))
+        puts("Skipping edge:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name}")
         next
       end
       #identifying best match for edges
-      for j in (0..numSubEdg - 1) #(int j = 0; j < numSubEdg; j++){
-        if(!subm[j].nil? and subm[j].inVertex.nodeID != -1 and subm[j].outVertex.nodeID != -1)
+      for j in (0..num_sub_edg - 1) 
+        if(!subm[j].nil? and subm[j].in_vertex.node_id != -1 and subm[j].out_vertex.node_id != -1)
+          
+          #checking if the subm token is a frequent word
+          if(wnet.is_frequent_word(subm[j].in_vertex.name) and wnet.is_frequent_word(subm[j].out_vertex.name))
+            puts("Skipping edge::#{subm[j].in_vertex.name} - #{subm[j].out_vertex.name}")
+            next
+          end 
+        
           #for S-V with S-V or V-O with V-O
-          if(rev[i].inVertex.type == subm[j].inVertex.type and rev[i].outVertex.type == subm[j].outVertex.type and
-            !@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID].nil? and !@vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID].nil?)
-            puts("rev[i].inVertex.name #{rev[i].inVertex.name} && subm[j].outVertex.name #{subm[j].outVertex.name} ::val:: #{@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID]}")
-            puts("rev[i].outVertex.name #{rev[i].outVertex.name} && subm[j].inVertex.name #{subm[j].inVertex.name} ::val:: #{@vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID]}")
-            if(!rev[i].label.nil?)
-              puts("rev[i].label #{rev[i].label}")
-            end
-            if(!subm[j].label.nil?)
-              puts("subm[j].label #{subm[j].label}")
-            end
-            #-- Only Vertex match
-            bestSV_VSMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j].outVertex.nodeID] + @vertexMatch[rev[i].outVertex.nodeID][subm[j].inVertex.nodeID])/2
-            #-- Vertex and SRL
-            bestSV_VSMatch[i][j] = bestSV_VSMatch[i][j]/ compareLabels(rev[i], subm[j])
-            #-- Only SRL
-            #bestSV_VSMatch[i][j] = (double) compareLabels(rev[i].label, subm[j].label);
-            flag = 1
-            if(bestSV_VSMatch[i][j] > max)
-              max = bestSV_VSMatch[i][j]
-            end
-          end
+          if(rev[i].in_vertex.type == subm[j].in_vertex.type and rev[i].out_vertex.type == subm[j].out_vertex.type)
+            puts("rev[i].in_vertex.name #{rev[i].in_vertex.name} && subm[j].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id]}")
+            puts("rev[i].out_vertex.name #{rev[i].out_vertex.name} && subm[j].in_vertex.name #{subm[j].in_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id]}")
             
-          #for S-V with V-O or V-O with S-V
-          if(rev[i].inVertex.type == subm[j].outVertex.type and rev[i].outVertex.type == subm[j].inVertex.type and
-            !@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID].nil? and !@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID].nil?)
-            puts("rev[i].inVertex.name #{rev[i].inVertex.name} && subm[j].inVertex.name #{subm[j].inVertex.name} ::val:: #{@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID]}")
-            puts("rev[i].outVertex.name #{rev[i].outVertex.name} && subm[j].outVertex.name #{subm[j].outVertex.name} ::val:: #{@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID]}")
-            if(!rev[i].label.nil?)
-              puts("rev[i].label #{rev[i].label}")
+            #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+            sum = 0.0
+            cou = 0
+            if(!@vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j].out_vertex.node_id]
+              cou +=1
             end
-            if(!subm[j].label.nil?)
-              puts("subm[j].label #{subm[j].label}")
+            if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].in_vertex.node_id]
+              cou +=1
+            end  
+            
+            if(cou > 0)
+              best_SV_VS_match[i][j] = sum.to_f/cou.to_f
+            else
+              best_SV_VS_match[i][j] = 0.0
             end
-            #-- Only Vertex match
-            bestSV_VSMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID] + @vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID])/2
+            
             #-- Vertex and SRL
-            #**it is likely that these edges will always have different labels due to the nature and order of comparison of edges
-            #S-V edges are likely to be SUBJ while V-O edges could be OBJ and hence different labels are frequent
-            #bestSV_VSMatch[i][j] = (double)bestSV_VSMatch[i][j]/ (double)compareLabels(rev[i], subm[j]);
-            #-- Only SRL
-            #bestSV_VSMatch[i][j] = (double)compareLabels(rev[i].label, subm[j].label);
+            best_SV_VS_match[i][j] = best_SV_VS_match[i][j]/ compare_labels(rev[i], subm[j])
+            
             flag = 1
-            if(bestSV_VSMatch[i][j] > max)
-              max = bestSV_VSMatch[i][j]
+            if(best_SV_VS_match[i][j] > max)
+              max = best_SV_VS_match[i][j]
+            end
+         
+          #for S-V with V-O or V-O with S-V
+          elsif(rev[i].in_vertex.type == subm[j].out_vertex.type and rev[i].out_vertex.type == subm[j].in_vertex.type)
+            puts("rev[i].in_vertex.name #{rev[i].in_vertex.name} && subm[j].in_vertex.name #{subm[j].in_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]}")
+            puts("rev[i].out_vertex.name #{rev[i].out_vertex.name} && subm[j].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}")
+            #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+            sum = 0.0
+            cou = 0
+            if(!@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]
+              cou +=1
+            end
+            if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]
+              cou +=1
+            end  
+            
+            if(cou > 0)
+              best_SV_VS_match[i][j] = sum.to_f/cou.to_f
+            else
+              best_SV_VS_match[i][j] =0.0
+            end
+            
+            flag = 1
+            if(best_SV_VS_match[i][j] > max)
+              max = best_SV_VS_match[i][j]
             end
           end
         end #end of the if condition
+      puts "max .. #{max}"
       end #end of the for loop for submission edges
         
       if(flag != 0) #if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
-        puts("**** Best match for:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} -- #{max}")
-        cumEdgeMatch = cumEdgeMatch + max
+        puts("**** Best match for:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} -- #{max}")
+        cum_edge_match = cum_edge_match + max
         count+=1
         max = 0.0 #re-initialize
         flag = 0
@@ -350,72 +429,95 @@ def compareEdgesDiffTypes(rev, subm, numRevEdg, numSubEdg)
     end #end of if condition
   end #end of for loop for review edges
     
-  avgMatch = 0.0
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumEdgeMatch/ count
+    avg_match = cum_edge_match.to_f/ count.to_f
   end
-  puts("Cumulative edge (diff types) match:: #{avgMatch}")
-  return avgMatch
+  puts("Cumulative edge (diff types) match:: #{avg_match}")
+  return avg_match
 end #end of the method   
 #------------------------------------------#------------------------------------------
 
-def compareSVOEdges(rev, subm, numRevEdg, numSubEdg)
-  puts("***********Inside compare SVO edges numRevEdg:: #{numRevEdg} numSubEdg::#{numSubEdg}")
-  bestSVO_SVOEdgesMatch = Array.new(numRevEdg){Array.new}
-  cumDoubleEdgeMatch = 0.0
+def compare_SVO_edges(rev, subm, num_rev_edg, num_sub_edg)
+  puts("***********Inside compare SVO edges numRevEdg:: #{num_rev_edg} numSubEdg::#{num_sub_edg}")
+  best_SVO_SVO_edges_match = Array.new(num_rev_edg){Array.new}
+  cum_double_edge_match = 0.0
   count = 0
   max = 0.0
   flag = 0
   wnet = WordnetBasedSimilarity.new  
-  for i in (0..numRevEdg - 1) #(int i = 0;i < numRevEdg; i++){
-    if(!rev[i].nil? and !rev[i+1].nil? and rev[i].inVertex.nodeID != -1 and rev[i].outVertex.nodeID != -1 and rev[i+1].outVertex.nodeID != -1  and rev[i].outVertex == rev[i+1].inVertex)
+  for i in (0..num_rev_edg - 1)
+    if(!rev[i].nil? and !rev[i+1].nil? and rev[i].in_vertex.node_id != -1 and rev[i].out_vertex.node_id != -1 and 
+      rev[i+1].out_vertex.node_id != -1  and rev[i].out_vertex == rev[i+1].in_vertex)
+      # puts "rev[#{i}] - #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name}"
+      # puts "rev[#{i}] - #{rev[i].in_vertex.type} - #{rev[i].out_vertex.type} - #{rev[i+1].out_vertex.type}"
     #skipping edges with frequent words for vertices
-      if(wnet.isFrequentWord(rev[i].inVertex.name) and wnet.isFrequentWord(rev[i].outVertex.name) and wnet.isFrequentWord(rev[i+1].outVertex.name))
-        puts("Skipping edge:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} - #{rev[i+1].outVertex.name}")
+      if(wnet.is_frequent_word(rev[i].in_vertex.name) and wnet.is_frequent_word(rev[i].out_vertex.name) and wnet.is_frequent_word(rev[i+1].out_vertex.name))
+        puts("Skipping edge:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name}")
         next
       end
         #best match
-        for j in (0..numSubEdg - 1) #(int j = 0; j < numSubEdg; j++){
-          if(!subm[j].nil? and !subm[j+1].nil? and subm[j].inVertex.nodeID != -1 and subm[j].outVertex.nodeID != -1 and subm[j+1].outVertex.nodeID != -1 and subm[j].outVertex == subm[j+1].inVertex)
+        for j in (0..num_sub_edg - 1)
+          if(!subm[j].nil? and !subm[j+1].nil? and subm[j].in_vertex.node_id != -1 and subm[j].out_vertex.node_id != -1 and 
+            subm[j+1].out_vertex.node_id != -1 and subm[j].out_vertex == subm[j+1].in_vertex)
+            
+            #checking if the subm token is a frequent word
+            if(wnet.is_frequent_word(subm[j].in_vertex.name) and wnet.is_frequent_word(subm[j].out_vertex.name))
+              puts("Skipping edge::#{subm[j].in_vertex.name} - #{subm[j].out_vertex.name}")
+              next
+            end 
+        
+            # puts "subm[#{j}] - #{subm[j].in_vertex.name} - #{subm[j].out_vertex.name} - #{subm[j+1].out_vertex.name}"
+            # puts "subm[#{j}] - #{subm[j].in_vertex.type} - #{subm[j].out_vertex.type} - #{subm[j+1].out_vertex.type}"
+            # puts "@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id] #{@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]}"
+            # puts "@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id] #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}"
+            # puts "@vertex_match[rev[i+1].out_vertex.node_id][subm[j+1].out_vertex.node_id] #{@vertex_match[rev[i+1].out_vertex.node_id][subm[j+1].out_vertex.node_id]}"
             #making sure the types are the same during comparison
-            if(rev[i].inVertex.type == subm[j].inVertex.type and rev[i].outVertex.type == subm[j].outVertex.type and rev[i+1].outVertex.type == subm[j+1].outVertex.type and
-              !@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID].nil? and !@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID].nil? and
-              !@vertexMatch[rev[i+1].outVertex.nodeID][subm[j+1].outVertex.nodeID].nil?)
-              #System.out.println("rev[i].inVertex.name "+rev[i].inVertex.name +" && subm[j].inVertex.name "+subm[j].inVertex.name+"::val::"+vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID]);
-              #System.out.println("rev[i].outVertex.name "+rev[i].outVertex.name +" && subm[j].outVertex.name "+subm[j].outVertex.name+"::val::"+vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID]);
-              #System.out.println("rev[i+1].outVertex.name "+rev[i+1].outVertex.name +" && subm[j+1].outVertex.name "+subm[j+1].outVertex.name+"::val::"+vertexMatch[rev[i+1].outVertex.nodeID][subm[j+1].outVertex.nodeID]);
-              if(!rev[i].label.nil?)
-                puts("rev[i].label #{rev[i].label}")
-              end
-              if(!subm[j].label.nil?)
-                puts("subm[j].label #{subm[j].label}")
-              end
-              if(!rev[i+1].label.nil?)
-                puts("rev[i+1].label #{rev[i+1].label}")
-              end
-              if(!subm[j+1].label.nil?)
-                puts("subm[j+1].label #{subm[j+1].label}")
-              end
+            if(rev[i].in_vertex.type == subm[j].in_vertex.type and rev[i].out_vertex.type == subm[j].out_vertex.type and 
+              rev[i+1].out_vertex.type == subm[j+1].out_vertex.type)
+              # puts("rev[#{i}].in_vertex.name #{rev[i].in_vertex.name} && subm[#{j}].in_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]}")
+              # puts("rev[#{i}].out_vertex.name #{rev[i].out_vertex.name} && subm[#{j}].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}")
+              # puts("rev[#{i+1}].out_vertex.name #{rev[i+1].out_vertex.name} && subm[#{j+1}].out_vertex.name #{subm[j+1].out_vertex.name} ::val:: #{@vertex_match[rev[i+1].out_vertex.node_id][subm[j+1].out_vertex.node_id]}")
               
+              #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+              sum = 0.0
+              cou = 0
+              if(!@vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+                sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j].in_vertex.node_id]
+                cou +=1
+              end
+              if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+                sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]
+                cou +=1
+              end
+              if(!@vertex_match[rev[i+1].out_vertex.node_id][subm[j+1].out_vertex.node_id].nil?)
+                sum = sum + @vertex_match[rev[i+1].out_vertex.node_id][subm[j+1].out_vertex.node_id]
+                cou +=1
+              end
               #-- Only Vertex match
-              bestSVO_SVOEdgesMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j].inVertex.nodeID] +
-                  @vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID] + @vertexMatch[rev[i+1].outVertex.nodeID][subm[j+1].outVertex.nodeID])/3
+              if(cou > 0)
+                best_SVO_SVO_edges_match[i][j] = sum.to_f/cou.to_f
+              else
+                best_SVO_SVO_edges_match[i][j] = 0.0
+              end
+              #puts "best_SVO_SVO_edges_match[#{i}][#{j}] = best_SVO_SVO_edges_match[i][j]"
               #-- Vertex and SRL
-              bestSVO_SVOEdgesMatch[i][j] = bestSVO_SVOEdgesMatch[i][j]/ compareLabels(rev[i], subm[j])
-              bestSVO_SVOEdgesMatch[i][j] = bestSVO_SVOEdgesMatch[i][j]/ compareLabels(rev[i+1], subm[j+1])
+              best_SVO_SVO_edges_match[i][j] = best_SVO_SVO_edges_match[i][j].to_f/ compare_labels(rev[i], subm[j]).to_f
+              best_SVO_SVO_edges_match[i][j] = best_SVO_SVO_edges_match[i][j].to_f/ compare_labels(rev[i+1], subm[j+1]).to_f
               #-- Only SRL
               #bestSVO_SVOEdgesMatch[i][j] = ((double)compareLabels(rev[i].label, subm[j].label) + (double)compareLabels(rev[i+1].label, subm[j+1].label))/(double)2;
-              if(bestSVO_SVOEdgesMatch[i][j] > max)
-                max = bestSVO_SVOEdgesMatch[i][j]
+              if(best_SVO_SVO_edges_match[i][j] > max)
+                max = best_SVO_SVO_edges_match[i][j]
               end
               flag = 1
            end
           end #end of 'if' condition
+          #puts "max .. #{max}"
         end #end of 'for' loop for 'j'
         
         if(flag != 0) #if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
-          puts("**** Best match for:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} - #{rev[i+1].outVertex.name} -- #{max}")
-          cumDoubleEdgeMatch = cumDoubleEdgeMatch + max
+          puts("**** Best match for:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name} -- #{max}")
+          cum_double_edge_match = cum_double_edge_match + max
           count+=1
           max = 0.0 #re-initialize
           flag = 0
@@ -423,73 +525,83 @@ def compareSVOEdges(rev, subm, numRevEdg, numSubEdg)
       end #end of 'if' condition
     end #end of 'for' loop for 'i'
     
-  avgMatch = 0.0
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumDoubleEdgeMatch/ count
+    avg_match = cum_double_edge_match.to_f/ count.to_f
   end
-  puts("Cumulative double edge (without syn) match:: #{avgMatch}")
-  return avgMatch
+  puts("Cumulative double edge (without syn) match:: #{avg_match}")
+  return avg_match
 end
 #------------------------------------------#------------------------------------------
 
-def compareSVODiffSyntax(rev, subm, numRevEdg, numSubEdg)
-  puts("***********Inside compare SVO edges with syntax difference numRevEdg:: #{numRevEdg} numSubEdg:: #{numSubEdg}")
-  bestSVO_OVSEdgesMatch = Array.new(numRevEdg){ Array.new}
-  cumDoubleEdgeMatch = 0.0
+def compare_SVO_diff_syntax(rev, subm, num_rev_edg, num_sub_edg)
+  puts("***********Inside compare SVO edges with syntax difference numRevEdg:: #{num_rev_edg} numSubEdg:: #{num_sub_edg}")
+  best_SVO_OVS_edges_match = Array.new(num_rev_edg){ Array.new}
+  cum_double_edge_match = 0.0
   count = 0
   max = 0.0
   flag = 0
   wnet = WordnetBasedSimilarity.new  
-  for i in (0..numRevEdg - 1) 
-    if(!rev[i].nil? and !rev[i+1].nil? and rev[i].inVertex.nodeID != -1 and rev[i].outVertex.nodeID != -1 and rev[i+1].outVertex.nodeID != -1 and rev[i].outVertex == rev[i+1].inVertex)
+  for i in (0..num_rev_edg - 1) 
+    if(!rev[i].nil? and !rev[i+1].nil? and rev[i].in_vertex.node_id != -1 and rev[i].out_vertex.node_id != -1 and 
+      rev[i+1].out_vertex.node_id != -1 and rev[i].out_vertex == rev[i+1].in_vertex)
+      # puts "rev[#{i}] - #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name}"
+      # puts "rev[#{i}] - #{rev[i].in_vertex.type} - #{rev[i].out_vertex.type} - #{rev[i+1].out_vertex.type}"
       #skipping edges with frequent words for vertices
-      if(wnet.isFrequentWord(rev[i].inVertex.name) and wnet.isFrequentWord(rev[i].outVertex.name) and wnet.isFrequentWord(rev[i+1].outVertex.name))
-        puts("Skipping edge:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} - #{rev[i+1].outVertex.name}")
+      if(wnet.is_frequent_word(rev[i].in_vertex.name) and wnet.is_frequent_word(rev[i].out_vertex.name) and wnet.is_frequent_word(rev[i+1].out_vertex.name))
+        puts("Skipping edge:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name}")
         next
       end
         
-      for j in (0..numSubEdg - 1)
-        if(!subm[j].nil? and !subm[j+1].nil? and subm[j].inVertex.nodeID != -1 and subm[j].outVertex.nodeID != -1 and subm[j+1].outVertex.nodeID != -1 and subm[j].outVertex == subm[j+1].inVertex)
+      for j in (0..num_sub_edg - 1)
+        if(!subm[j].nil? and !subm[j+1].nil? and subm[j].in_vertex.node_id != -1 and subm[j].out_vertex.node_id != -1 and subm[j+1].out_vertex.node_id != -1 and subm[j].out_vertex == subm[j+1].in_vertex)
+          # puts "subm[#{j}] - #{subm[j].in_vertex.name} - #{subm[j].out_vertex.name} - #{subm[j+1].out_vertex.name}"
+          # puts "subm[#{j}] - #{subm[j].in_vertex.type} - #{subm[j].out_vertex.type} - #{subm[j+1].out_vertex.type}"
+          # puts "@vertex_match[rev[i].in_vertex.node_id][subm[j+1].out_vertex.node_id] #{@vertex_match[rev[i].in_vertex.node_id][subm[j+1].out_vertex.node_id]}"
+          # puts "@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id] #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}"
+          # puts "@vertex_match[rev[i+1].out_vertex.node_id][subm[j].in_vertex.node_id] #{@vertex_match[rev[i+1].out_vertex.node_id][subm[j].in_vertex.node_id]}"
           #making sure the types are the same during comparison
-          if(rev[i].inVertex.type == subm[j+1].outVertex.type and rev[i].outVertex.type == subm[j].outVertex.type and rev[i+1].outVertex.type == subm[j].inVertex.type and
-            !@vertexMatch[rev[i].inVertex.nodeID][subm[j+1].outVertex.nodeID].nil? and !@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID].nil? and
-            !@vertexMatch[rev[i+1].outVertex.nodeID][subm[j].inVertex.nodeID].nil?)
-            puts("rev[i].inVertex.name #{rev[i].inVertex.name} && subm[j+1].outVertex.name #{subm[j+1].outVertex.name} ::val:: #{@vertexMatch[rev[i].inVertex.nodeID][subm[j+1].outVertex.nodeID]}")
-            puts("rev[i].outVertex.name #{rev[i].outVertex.name} && subm[j].outVertex.name #{subm[j].outVertex.name} ::val:: #{@vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID]}")
-            puts("rev[i+1].outVertex.name #{rev[i+1].outVertex.name} && subm[j].outVertex.name #{subm[j].inVertex.name} ::val:: #{@vertexMatch[rev[i+1].outVertex.nodeID][subm[j].inVertex.nodeID]}")
-            if(!rev[i].label.nil?)
-              puts("rev[i].label #{rev[i].label}")
+          if(rev[i].in_vertex.type == subm[j+1].out_vertex.type and rev[i].out_vertex.type == subm[j].out_vertex.type and 
+            rev[i+1].out_vertex.type == subm[j].in_vertex.type)
+            # puts("rev[i].in_vertex.name #{rev[i].in_vertex.name} && subm[j+1].out_vertex.name #{subm[j+1].out_vertex.name} ::val:: #{@vertex_match[rev[i].in_vertex.node_id][subm[j+1].out_vertex.node_id]}")
+            # puts("rev[i].out_vertex.name #{rev[i].out_vertex.name} && subm[j].out_vertex.name #{subm[j].out_vertex.name} ::val:: #{@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]}")
+            # puts("rev[i+1].out_vertex.name #{rev[i+1].out_vertex.name} && subm[j].out_vertex.name #{subm[j].in_vertex.name} ::val:: #{@vertex_match[rev[i+1].out_vertex.node_id][subm[j].in_vertex.node_id]}")
+            
+            #taking each match separately because one or more of the terms may be a frequent word, for which no @vertex_match exists!
+            sum = 0.0
+            cou = 0
+            if(!@vertex_match[rev[i].in_vertex.node_id][subm[j+1].out_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].in_vertex.node_id][subm[j+1].out_vertex.node_id]
+              cou +=1
             end
-            if(!subm[j].label.nil?)
-              puts("subm[j+1].label #{subm[j].label}")
+            if(!@vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i].out_vertex.node_id][subm[j].out_vertex.node_id]
+              cou +=1
             end
-            if(!rev[i+1].label.nil?)
-              puts("rev[i+1].label #{rev[i+1].label}")
+            if(!@vertex_match[rev[i+1].out_vertex.node_id][subm[j].in_vertex.node_id].nil?)
+              sum = sum + @vertex_match[rev[i+1].out_vertex.node_id][subm[j].in_vertex.node_id]
+              cou +=1
             end
-            if(!subm[j+1].label.nil?)
-              puts("subm[j].label #{subm[j+1].label}")
-            end
+                       
             #comparing s-v-o (from review) with o-v-s (from submission)
-            #-- Only Vertex
-            bestSVO_OVSEdgesMatch[i][j] = (@vertexMatch[rev[i].inVertex.nodeID][subm[j+1].outVertex.nodeID] +
-                @vertexMatch[rev[i].outVertex.nodeID][subm[j].outVertex.nodeID] + @vertexMatch[rev[i+1].outVertex.nodeID][subm[j].inVertex.nodeID])/3
-            #-- Vertex and SRL
-            #**it is likely that these edges will always have different labels due to the nature and order of comparison of edges
-            #bestSVO_OVSEdgesMatch[i][j] = (double) bestSVO_OVSEdgesMatch[i][j]/ (double)compareLabels(rev[i], subm[j+1]);
-            #bestSVO_OVSEdgesMatch[i][j] = (double) bestSVO_OVSEdgesMatch[i][j]/ (double)compareLabels(rev[i+1], subm[j]);
-            #-- Only SRL
-            #bestSVO_OVSEdgesMatch[i][j] = ((double)compareLabels(rev[i].label, subm[j+1].label) + (double)compareLabels(rev[i+1].label, subm[j].label))/(double)2;
+            if(cou > 0)
+              best_SVO_OVS_edges_match[i][j] = sum.to_f/cou.to_f
+            else
+              best_SVO_OVS_edges_match[i][j] = 0.0
+            end
+            #puts "best_SVO_OVS_edges_match[i][j] #{best_SVO_OVS_edges_match[i][j]}"
             flag = 1
-            if(bestSVO_OVSEdgesMatch[i][j] > max)
-              max = bestSVO_OVSEdgesMatch[i][j]
+            if(best_SVO_OVS_edges_match[i][j] > max)
+              max = best_SVO_OVS_edges_match[i][j]
             end
           end  
         end #end of 'if' condition
+        #puts "max..#{max}"
       end #end of 'for' loop for 'j'
       
       if(flag != 0)#if the review edge had any submission edges with which it was matched, since not all S-V edges might have corresponding V-O edges to match with
-        puts("**** Best match for:: #{rev[i].inVertex.name} - #{rev[i].outVertex.name} - #{rev[i+1].outVertex.name}-- #{max}")
-        cumDoubleEdgeMatch = cumDoubleEdgeMatch + max
+        puts("**** Best match for:: #{rev[i].in_vertex.name} - #{rev[i].out_vertex.name} - #{rev[i+1].out_vertex.name}-- #{max}")
+        cum_double_edge_match = cum_double_edge_match + max
         count+=1
         max = 0.0 #re-initialize
         flag = 0
@@ -498,12 +610,12 @@ def compareSVODiffSyntax(rev, subm, numRevEdg, numSubEdg)
     end #end of if condition
   end #end of for loop for 'i'
     
-  avgMatch = 0.0
+  avg_match = 0.0
   if(count > 0)
-    avgMatch = cumDoubleEdgeMatch/ count
+    avg_match = cum_double_edge_match.to_f / count.to_f
   end
-  puts("Cumulative double edge (with syn) match:: #{avgMatch}")
-  return avgMatch
+  puts("Cumulative double edge (with syn) match:: #{avg_match}")
+  return avg_match
 end #end of method
 #------------------------------------------#------------------------------------------
 =begin  
@@ -514,20 +626,20 @@ end #end of method
    * We therefore use the labels to only decrease the match value found from vertices, i.e., if the labels were different.
    * Match value will be left as is, if the labels were the same.
 =end
-def compareLabels(edge1, edge2)
-  result = EQUAL
-  if(!edge1.label.nil? and !edge2.label .nil?)
-    if(edge1.label.equalsIgnoreCase(edge2.label))
-      result = EQUAL #divide by 1
-    else
-      result = DISTINCT #divide by 2
-    end
-  elsif((!edge1.label.nil? and !edge2.label.nil?) or (edge1.label.nil? and !edge2.label.nil? )) #if only one of the labels was null
-      result = DISTINCT
-  elsif(edge1.label.nil? and edge2.label.nil?) #if both labels were null!
-      result = EQUAL
-  end  
-  
-  return result
-end # end of method
+  def compare_labels(edge1, edge2)
+    result = EQUAL
+    if(!edge1.label.nil? and !edge2.label .nil?)
+      if(edge1.label.downcase == edge2.label.downcase)
+        result = EQUAL #divide by 1
+      else
+        result = DISTINCT #divide by 2
+      end
+    elsif((!edge1.label.nil? and !edge2.label.nil?) or (edge1.label.nil? and !edge2.label.nil? )) #if only one of the labels was null
+        result = DISTINCT
+    elsif(edge1.label.nil? and edge2.label.nil?) #if both labels were null!
+        result = EQUAL
+    end  
+    puts "compare_labels returning #{result}"
+    return result
+  end # end of method
 end

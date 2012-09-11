@@ -1,0 +1,46 @@
+<h3>Review Responses</h3>
+<img src="<%= @graph %>" alt="Metareview graph" style="float:right;margin:0 5px 0 0;" title = "Comparing your metareview metrics with average metareviews scores from other Expertiza reviewers"/>
+<% for i in 0..@automated_metareview.responses.scores.length - 1 %>
+	<b> [<%=i+1%>] <%= Question.find_by_sql(["Select * from questions where id = ?", @automated_metareview.responses.scores[i].question_id])[0].txt %> </b> <br>
+	<%= @automated_metareview.responses.scores[i].comments.to_s %> <br>
+<% end %>
+<h3>Metareview Feedback for Review</h3>
+<!-- Degree of Relevance -->
+<b> Relevance - <%= (@automated_metareview.relevance * 10000).round.to_f/10000 %> </b>
+	<!-- The 'i' values are hard-coded - to be passed to the partial 'details'
+	<%= render :partial => 'details', :locals => {:i => 1, :type => "relevance"} %> -->  
+	<%= link_to_remote_redbox "info", :url => {:controller => 'popup', :action => 'automated_metareview_details_popup', :type => "Relevance"} %> <br>
+<!-- Quantity -->
+<b> Quantity - <%= @automated_metareview.quantity %> </b>
+	<%= link_to_remote_redbox "info", :url => {:controller => 'popup', :action => 'automated_metareview_details_popup', :type => "Quantity"} %> <br>
+	
+<!-- Plagiarism -->
+<b> Plagiarism - <%= @automated_metareview.plagiarism%> </b>
+	<%= render :partial => 'details', :locals => {:i => 3, :type => "plagiarism"} %>
+<!-- Review Content -->
+<br>
+<b> Content Type </b>
+	<%= render :partial => 'details', :locals => {:i => 4, :type => "content"} %> </li>
+<ol>
+<li>Summative Content - <b><%= (@automated_metareview.content_summative * 10000).round.to_f/10000 %> </b>  
+	<%= render :partial => 'details', :locals => {:i => 5, :type => "summative_content"} %> </li>
+<li>Problem Content - <b><%= (@automated_metareview.content_problem * 10000).round.to_f/10000 %> </b>
+	<%= render :partial => 'details', :locals => {:i => 6, :type => "problem_content"} %> </li>
+<li>Advisory Content -  <b><%= (@automated_metareview.content_advisory * 10000).round.to_f/10000 %> </b>
+	<%= render :partial => 'details', :locals => {:i => 7, :type => "advisory_content"} %> </li>
+</ol>
+<!-- Review Tone -->
+<b> Tone Type</b>
+<%= render :partial => 'details', :locals => {:i => 8, :type => "tone"} %>
+<ol>
+<li>Positive Tone -  <b><%= (@automated_metareview.tone_positive * 10000).round.to_f/10000 %> </b> 
+	<%= render :partial => 'details', :locals => {:i => 9, :type => "positive_tone"} %> </li>
+<li>Negative Tone - <b> <%= (@automated_metareview.tone_negative * 10000).round.to_f/10000 %> </b>
+	<%= render :partial => 'details', :locals => {:i => 10, :type => "negative_tone"} %> </li>
+<li>Neutral Tone - <b> <%= (@automated_metareview.tone_neutral * 10000).round.to_f/10000 %> </b>
+	<%= render :partial => 'details', :locals => {:i => 11, :type => "neutral_tone"} %> </li>
+</ol>
+<!--<img src="<%= @graph %>"/>-->
+<a href="javascript:window.history.back()"><%= button_to 'Edit Review Again'%></a>
+<%= link_to 'Back to Reviews List', :controller => 'student_review', :action =>'list', :id => ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id %>
+<% puts "@participant.id #{ResponseMap.find(@automated_metareview.responses.map_id).reviewer_id}"%> 

@@ -1,0 +1,16 @@
+[03/09/2012 at 01:41PM]
+
+Adding annotator tokenize
+Adding annotator ssplit
+Adding annotator pos
+Loading POS Model [/Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/taggers/english-left3words-distsim.tagger] ... Loading default properties from trained tagger /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/taggers/english-left3words-distsim.tagger
+Reading POS tagger model from /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/taggers/english-left3words-distsim.tagger ... done [1.6 sec].
+done [1.7 sec].
+Adding annotator lemma
+Adding annotator parse
+Loading parser from serialized file /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/grammar/englishPCFG.ser.gz ... done [1.7 sec].
+Adding annotator ner
+Loading classifier from /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/classifiers/all.3class.distsim.crf.ser.gz ... done [5.6 sec].
+Loading classifier from /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/classifiers/muc.7class.distsim.crf.ser.gz ... done [13.5 sec].
+Loading classifier from /Library/Ruby/Gems/1.8/gems/stanford-core-nlp-0.2.1/lib/../bin/classifiers/conll.4class.distsim.crf.ser.gz ... done [16.3 sec].
+Adding annotator dcoref

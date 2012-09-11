@@ -401,6 +401,42 @@ end #end of the search_vertices method
 
 #------------------------------------------#------------------------------------------#------------------------------------------
 
+# =begin
+# While checking if the complete vertex already exists and if it does increment its frequency.
+# Also, deleting substrings that would have formed full vertices early on, if any exist.
+# Looking for string 's' (from sentence with index 'index') in the set of vertices 'verts'
+# =end  
+# def get_vertex(s, index)
+  # verts = @vertices
+  # position = 0
+  # flag = 0
+  # #if the string is nil
+  # if(s == nil)
+    # return nil
+  # end
+#   
+  # verts = @vertices
+  # #iterating through the vertices
+  # for i in (0..verts.length-1)
+    # if(!verts[i].nil? and verts[i].name.casecmp(s) == 0 and index == verts[i].index)
+      # #puts("***get_vertex:: FOUND vertex:: #{s}")
+      # flag = 1
+      # position = i
+      # verts[i].frequency+=1
+    # end #end of the if condition 
+  # end # end of the for loop
+#     
+  # if(flag == 1)
+    # puts("***get_vertex returning #{verts[position].name}")
+    # return verts[position]
+  # else
+    # puts("***get_vertex returning null")
+    # return nil
+  # end
+# end #end of the get_vertex method 
+
+#------------------------------------------#------------------------------------------#------------------------------------------
+
 =begin
 NULLIFY ALL VERTICES CONTAINING "ONLY SUBSTRINGS" (and not exact matches) OF THIS VERTEX IN THE SAME SENTENCE (verts[j].index == index)
 And reset the @vertices array with non-null elements.

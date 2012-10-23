@@ -1,18 +1,18 @@
 require 'test_helper'
-require 'Automated_Metareview/sentence_state'
+require 'automated_metareview/sentence_state'
     
 class SentenceStateTest < ActiveSupport::TestCase
-  attr_accessor :pos_tagger
+  attr_accessor :pos_tagger, :sstate
   def setup
     @pos_tagger = EngTagger.new
+    #creating an instance of the 'SentenceState' class        
+    @sstate = SentenceState.new
   end
   
   test "Identify State 1" do
     sentence = "Parallel lines never meet."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -22,8 +22,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "He is not playing."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -33,8 +31,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I’m not ever going to do any homework."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -44,8 +40,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "You aren't ever going to go anywhere with me if you act like that."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -55,8 +49,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "No examples and no explanation have been provided."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -66,8 +58,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "No good or bad examples have been provided."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], NEGATED)
@@ -77,8 +67,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "It is too short not to contain sufficient explanation." #the sentence is ambiguous
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], POSITIVE) 
@@ -88,8 +76,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "We are not not musicians."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], POSITIVE)
@@ -99,8 +85,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I don't need none."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)    
     assert_equal(state_array[0], POSITIVE)
@@ -110,8 +94,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "It was so hot, I couldn't hardly breathe."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)
     assert_equal(1, state_array.length)    
@@ -122,8 +104,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I don't want to go nowhere."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments) 
     assert_equal(state_array[0], POSITIVE)
@@ -133,8 +113,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "This essay is clearly not nonsense."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments) 
     assert_equal(state_array[0], POSITIVE)
@@ -144,8 +122,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I receive a not insufficient allowance."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments) 
     assert_equal(state_array[0], POSITIVE)
@@ -155,8 +131,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "This is barely duplicated."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments) 
     assert_equal(state_array[0], POSITIVE)
@@ -166,8 +140,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "It is ambiguous and I would have preferred to do it differently."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)
     assert_equal(2, state_array.length) 
@@ -179,8 +151,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I suggest you not take that route."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)
     assert_equal(state_array[0], SUGGESTIVE)
@@ -190,8 +160,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "I hardly suggested that option."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)
     assert_equal(state_array[0], SUGGESTIVE)
@@ -201,8 +169,6 @@ class SentenceStateTest < ActiveSupport::TestCase
     sentence = "It is perhaps better you not do the homework."
     #getting the tagged string
     tagged_string = @pos_tagger.get_readable(sentence)
-    #creating an instance of the 'SentenceState' class        
-    sstate = SentenceState.new
     #calling the identify_sentence_state method with tagged_string as a parameter
     state_array = sstate.identify_sentence_state(tagged_string) #returns an array containing states as the output (depending on the number and types of segments)
     assert_equal(state_array[0], SUGGESTIVE) #negative or suggestive, is ambiguous

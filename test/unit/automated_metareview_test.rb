@@ -7,8 +7,8 @@ class AutomatedMetareviewTest < ActiveSupport::TestCase
   end
   
   # test "fetch review data array length" do
-    # require 'Automated_Metareview/textCollection'
-    # tc = TextCollection.new
+    # require 'automated_metareview/text_preprocessing'
+    # tc = TextPreprocessing.new
     # map_id = 54808 #initialize some map_id from which the review comments can be extracted
     # instance = AutomatedMetareview.new
     # review = instance.fetch_review_data(map_id, tc)
@@ -16,8 +16,8 @@ class AutomatedMetareviewTest < ActiveSupport::TestCase
   # end
 #   
   # test "fetch review data array contents" do
-    # require 'Automated_Metareview/textCollection'
-    # tc = TextCollection.new
+    # require 'automated_metareview/text_preprocessing'
+    # tc = TextPreprocessing.new
     # map_id = 54808 #initialize some map_id from which the review comments can be extracted
     # instance = AutomatedMetareview.new
     # review = instance.fetch_review_data(map_id, tc)
@@ -28,8 +28,8 @@ class AutomatedMetareviewTest < ActiveSupport::TestCase
   # end
   
   test "fetch submission data array length" do
-    require 'Automated_Metareview/textCollection'
-    tc = TextCollection.new
+    require 'automated_metareview/text_preprocessing'
+    tc = TextPreprocessing.new
     map_id = 54808 #initialize some map_id from which the review comments can be extracted
     instance = AutomatedMetareview.new
     submission = instance.fetch_submission_data(map_id, tc)
@@ -37,8 +37,8 @@ class AutomatedMetareviewTest < ActiveSupport::TestCase
   end
   
   test "fetch submission data array contents" do
-    require 'Automated_Metareview/textCollection'
-    tc = TextCollection.new
+    require 'automated_metareview/text_preprocessing'
+    tc = TextPreprocessing.new
     map_id = 54808 #initialize some map_id from which the review comments can be extracted
     instance = AutomatedMetareview.new
     submission = instance.fetch_submission_data(map_id, tc)

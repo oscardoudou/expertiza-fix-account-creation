@@ -1,12 +1,52 @@
-require 'Automated_Metareview/constants'
-require 'Automated_Metareview/Edge'
-require 'Automated_Metareview/vertex'
+require 'automated_metareview/constants'
+require 'automated_metareview/edge'
+require 'automated_metareview/vertex'
 
-class TextCollection
+class TextPreprocessing
+
+=begin
+ Fetching review data from the tables based on the response_map id 
+=end  
+  def fetch_review_data(auto_metareview, map_id)
+    reviews = Array.new
+    responses = Response.find(:first, :conditions => ["map_id = ?", map_id], :order => "version_num DESC")
+    auto_metareview.responses = responses
+    auto_metareview.response_id = responses.id
+    # puts "auto_metareview.response_id #{auto_metareview.response_id}"
+    # puts "responses version number #{responses.version_num}"
+    responses.scores.each{
+      | review_score |
+      if(review_score.comments != nil and !review_score.comments.rstrip.empty?)
+        # puts review_score.comments
+        reviews << review_score.comments        
+      end
+    }
+    return reviews
+  end
+#------------------------------------------#------------------------------------------#------------------------------------------
+=begin
+ Fetching submission data from the url submitted by the reviewee 
+=end
+  def fetch_submission_data(map_id)
+    subm_array = Array.new
+    reviewee_id = ResponseMap.find(:first, :conditions => ["id = ?", map_id]).reviewee_id
+    url = Participant.find(:first, :conditions => ["id = ?", reviewee_id]).submitted_hyperlinks
+    #fetching the url submitted by the reviewee
+    url = url[url.rindex("http")..url.length-2] #use "rindex" to fetch last occurrence of the substring - useful if there are multiple urls
+    puts "***url #{url} #{url.class}"
+    page = Nokogiri::HTML(open(url))
+    #fetching the paragraph texts from the specified url
+    page.css('p').each do |subm|
+      # puts "subm.text.. #{subm.text}"
+      subm_array << subm.text 
+    end   
+    return subm_array  
+  end
+#------------------------------------------#------------------------------------------#------------------------------------------  
 =begin
   pre-processes the review text and sends it in for graph formation and further analysis
 =end
-def get_review(flag, text_array)
+def segment_text(flag, text_array)
   if(flag == 0)
     reviews = Array.new(1){Array.new}
   else
@@ -18,24 +58,20 @@ def get_review(flag, text_array)
   
   for k in (0..text_array.length-1)
     text = text_array[k]
-    #puts "textArray[k] #{textArray[k]}"
-    #puts("Text:: #{text.class} - #{text}")
     if(flag == 1) #reset i (the sentence counter) to 0 for test reviews
       reviews[j] = Array.new #initializing the array for sentences in a test review
       i = 0
     end
-    #******* Pre-processing the review text **********
+    
+    #******* Pre-processing the review/submission text **********
     #replacing commas in large numbers, makes parsing sentences with commas confusing!
     #replacing quotation marks
     text.gsub!("\"", "")
-    # text.gsub!(";", "")
-    # text.gsub!(",", "")
     text.gsub!("(", "")
     text.gsub!(")", "")
     if(text.include?("http://"))
       text = remove_urls(text)
     end
-    puts "text .. #{text}"      
     #break the text into multiple sentences
     beginn = 0
     if(text.include?(".") or text.include?("?") or text.include?("!") or text.include?(",") or text.include?(";") ) #new clause or sentence
@@ -61,7 +97,6 @@ def get_review(flag, text_array)
         #check if the string between two commas or punctuations is there to buy time e.g. ", say," ",however," ", for instance, "... 
         if(flag == 0) #training
           reviews[0][i] = text[beginn..endd].strip
-          #puts "reviews[0][i] #{reviews[0][i]}"
         else #testing
           reviews[j][i] = text[beginn..endd].strip
         end        
@@ -71,22 +106,11 @@ def get_review(flag, text_array)
     else #if there is only 1 sentence in the text
       if(flag == 0)#training            
         reviews[0][i] = text.strip
-        #puts "reviews[0][i] #{reviews[0][i]}"
         i+=1 #incrementing the sentence counter
       else #testing
         reviews[j][i] = text.strip
       end
     end
-        
-    # if(!text.empty?())#if text is not empty
-      # if(flag == 0)#training
-        # reviews[0][i] = text
-        # #puts "reviews[0][i] #{reviews[0][i]}.. text #{text}"
-        # i+=1
-      # else #testing
-        # reviews[j][i] = text
-      # end
-    # end
   
     if(flag == 1)#incrementing reviews counter only for test reviews
       j+=1
@@ -100,7 +124,6 @@ def get_review(flag, text_array)
     num_reviews = j
   end
 
-  #puts "array inside textCollection #{reviews[0]}"
   if(flag == 0)
     return reviews[0]
   end
@@ -124,18 +147,12 @@ def read_patterns(filename, pos)
       state = SUGGESTIVE
   end
     
-  #puts("**State is:: #{state}")
   FasterCSV.foreach(filename) do |text|
-    #puts text
     in_vertex = text[0][0..text[0].index("=")-1].strip
     out_vertex = text[0][text[0].index("=")+2..text[0].length].strip
 
     first_string_in_vertex = pos.get_readable(in_vertex.split(" ")[0]) #getting the first token in vertex to determine POS
     first_string_out_vertex = pos.get_readable(out_vertex.split(" ")[0]) #getting the first token in vertex to determine POS
-      
-    #puts("invertex:: #{invertex} - outvertex:: #{outvertex}")
-    #puts("firstStringInVertex:: #{firstStringInVertex} - firstStringOutVertex:: "+firstStringOutVertex);
-    #puts("In-POS:: #{firstStringInVertex[firstStringInVertex.index("/")+1..firstStringInVertex.length-1]} - OutPOS:: #{firstStringOutVertex[firstStringOutVertex.index("/")+1..firstStringOutVertex.length-1]}")
       
      patterns[i] = Edge.new("noun", NOUN)
      #setting the invertex
@@ -163,11 +180,9 @@ def read_patterns(filename, pos)
     else #default is noun
       patterns[i].out_vertex = Vertex.new(out_vertex, NOUN, i, state, nil, nil, first_string_out_vertex[first_string_out_vertex.index("/")+1..first_string_out_vertex.length])
     end
-    #puts("Pattern:: #{patterns[i].in_vertex.name} - #{patterns[i].out_vertex.name}")
     i+=1 #incrementing for each pattern 
   end #end of the FasterCSV.foreach loop
   num_patterns = i
-  #puts("num_patterns:: #{num_patterns}")
   return patterns
 end
 
@@ -189,15 +204,107 @@ def remove_urls(text)
   else
     return text
   end
-  #puts "final_text - #{final_text}"
   return final_text  
 end
 #------------------------------------------#------------------------------------------#------------------------------------------
 
-end #end of class
+=begin
+Check for plagiarism after removing text within quotes for reviews
+=end
+def remove_text_within_quotes(review_text)
+  puts "Inside removeTextWithinQuotes:: "
+  reviews = Array.new
+  review_text.each{ |row|
+    puts "row #{row}"
+    text = row 
+    #text = text[1..text.length-2] #since the first and last characters are quotes
+    #puts "text #{text}"
+    #the read text is tagged with two sets of quotes!
+    if(text.include?("\""))
+      while(text.include?("\"")) do
+        replace_text = text.scan(/"([^"]*)"/)
+        # puts "replace_text #{replace_text[0]}.. #{replace_text[0].to_s.class} .. #{replace_text.length}"
+        # puts text.index(replace_text[0].to_s)
+        # puts "replace_text length .. #{replace_text[0].to_s.length}"
+        #fetching the start index of the quoted text, in order to replace the complete segment
+        start_index = text.index(replace_text[0].to_s) - 1 #-1 in order to start from the quote
+        # puts "text[start_index..start_index + replace_text[0].to_s.length+1] .. #{text[start_index.. start_index + replace_text[0].to_s.length+1]}"
+        #replacing the text segment within the quotes (including the quotes) with an empty string
+        text.gsub!(text[start_index..start_index + replace_text[0].to_s.length+1], "")
+        puts "text .. #{text}"
+      end #end of the while loop
+    end
+    reviews << text #set the text after all quoted segments have been removed.
+  } #end of the loop for "text" array
+  puts "returning reviews length .. #{reviews.length}"
+  return reviews #return only the first array element - a string!
+end
+#------------------------------------------#------------------------------------------#------------------------------------------   
+=begin
+ Looks for spelling mistakes in the text and fixes them using the raspell library available for ruby 
+=end
+def check_correct_spellings(review_text_array, speller)
+  review_text_array_temp = Array.new
+  #iterating through each response
+  review_text_array.each{
+    |review_text|
+    review_tokens = review_text.split(" ")
+    review_text_temp = ""
+    #iterating through tokens from each response
+    review_tokens.each{
+      |review_tok|
+      #checkiing the stem word's spelling for correctness
+      if(!speller.check(review_tok))
+        if(!speller.suggest(review_tok).first.nil?)
+          review_tok = speller.suggest(review_tok).first
+        end
+     end
+     review_text_temp = review_text_temp +" " + review_tok.downcase
+    }
+    review_text_array_temp << review_text_temp
+  }
+  return review_text_array_temp
+end
 
-#testing
-# tc = TextCollection.new
-# tc.getReview(1, "/Users/lakshmi/Documents/Thesis/Ruby-test/content-patterns/Expertiza-full-patterns/assess.csv")
-#posTagger = EngTagger.new
-#tc.readPatterns("/Users/lakshmi/Documents/Thesis/Ruby-test/content-patterns/Expertiza-full-patterns/patterns-assess.csv", posTagger)
+#------------------------------------------#------------------------------------------#------------------------------------------
+=begin
+ Checking if "str" is a punctuation mark like ".", ",", "?" etc. 
+=end
+public #The method was throwing a "NoMethodError: private method" error when called from a different class. Hence the "public" keyword.
+def contains_punct(str)
+  if(str.include?".")
+    str.gsub!(".","")
+  elsif(str.include?",")
+    str.gsub!(",","")
+  elsif(str.include?"?")
+    str.gsub!("?","")
+  elsif(str.include?"!")
+    str.gsub!("!","") 
+  elsif(str.include?";")
+    str.gsub(";","")
+  elsif(str.include?":")
+    str.gsub!(":","")
+  elsif(str.include?"(")
+    str.gsub!("(","")
+  elsif(str.include?")")
+    str.gsub!(")","")
+  elsif(str.include?"[")
+    str.gsub!("[","")
+  elsif(str.include?"]")
+    str.gsub!("]","")  
+  end 
+  return str
+end 
+#------------------------------------------#------------------------------------------#------------------------------------------
+=begin
+ Checking if "str" is a punctuation mark like ".", ",", "?" etc. 
+=end
+def is_punct(str)
+  if(str == "." or str == "," or str == "?" or str == "!" or str == ";" or str == ":")
+    return true
+  else
+    return false
+  end 
+end 
+
+end #end of class

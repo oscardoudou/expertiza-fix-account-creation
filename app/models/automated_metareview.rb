@@ -1,174 +1,163 @@
-require 'Automated_Metareview/text_collection'
-require 'Automated_Metareview/predict_class'
-require 'Automated_Metareview/degree_of_relevance'
-require 'Automated_Metareview/plagiarism_check'
-require 'Automated_Metareview/tone'
-require 'Automated_Metareview/text_quantity'
+require 'automated_metareview/text_preprocessing'
+require 'automated_metareview/predict_class'
+require 'automated_metareview/degree_of_relevance'
+require 'automated_metareview/plagiarism_check'
+require 'automated_metareview/tone'
+require 'automated_metareview/text_quantity'
+require 'automated_metareview/constants'
+
+#gem install edavis10-ruby-web-search
+#gem install google-api-client
 
 class AutomatedMetareview < ActiveRecord::Base
   #belongs_to :response, :class_name => 'Response', :foreign_key => 'response_id'
   #has_many :scores, :class_name => 'Score', :foreign_key => 'response_id', :dependent => :destroy
-  attr_accessor :responses, :url
+  attr_accessor :responses, :review_array
   #the code that drives the metareviewing
   def calculate_metareview_metrics(response, map_id)
-    
     puts "inside perform_metareviews!!"    
-    tc = TextCollection.new
-    puts "map_id #{map_id}"
+    
+    preprocess = TextPreprocessing.new
+    # puts "map_id #{map_id}"
     #fetch the review data as an array 
-    review_text = fetch_review_data(map_id, tc)
-       
-    #fetching submission data as an array    
-    subm_text = fetch_submission_data(map_id, tc)
+    @review_array = preprocess.fetch_review_data(self, map_id)
+    puts "self.responses #{self.responses}"
     
-    # #initializing the pos tagger and nlp tagger/semantic parser  
-    # pos_tagger = EngTagger.new
-    # core_NLP_tagger =  StanfordCoreNLP.load(:tokenize, :ssplit, :pos, :lemma, :parse, :ner, :dcoref)
-#     
-    # # #---------    
-    # # #relevance
-    # beginning_time = Time.now
-    # relev = DegreeOfRelevance.new
-    # self.relevance = relev.get_relevance(review_text, subm_text, 1, pos_tagger, core_NLP_tagger) #1 indicates the number of reviews
-    # #assigninging the graph generated for the review to the class variable, in order to reuse it for content classification
-    # review_graph = relev.review
-    # puts "review's #edges - #{review_graph.edges.length}"
-    # #calculating end time
-    # end_time = Time.now
-    # relevance_time = end_time - beginning_time
-#     
-    # #---------    
-    # # checking for plagiarism
-    # beginning_time = Time.now
-    # plag_instance = PlagiarismChecker.new
-    # result = plag_instance.check_for_plagiarism(review_text, subm_text)
-    # if(result == true)
-      # self.plagiarism = "TRUE"
-    # else
-      # self.plagiarism = "FALSE"
-    # end
-    # end_time = Time.now
-    # plagiarism_time = end_time - beginning_time
-#     
-    # #---------      
-    # #content
-    # beginning_time = Time.now
-    # content_instance = PredictClass.new
-    # pattern_files_array = ["app/models/Automated_Metareview/patterns-assess.csv",
-      # "app/models/Automated_Metareview/patterns-prob-detect.csv",
-      # "app/models/Automated_Metareview/patterns-suggest.csv"]
-    # #predcting class - last parameter is the number of classes
-    # content_probs = content_instance.predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, pattern_files_array, pattern_files_array.length)
-    # #self.content = "SUMMATIVE - #{(content_probs[0] * 10000).round.to_f/10000}, PROBLEM - #{(content_probs[1] * 10000).round.to_f/10000}, SUGGESTION - #{(content_probs[2] * 10000).round.to_f/10000}"
-    # end_time = Time.now
-    # content_time = end_time - beginning_time
-    # self.content_summative = content_probs[0]# * 10000).round.to_f/10000
-    # self.content_problem = content_probs[1] #* 10000).round.to_f/10000
-    # self.content_advisory = content_probs[2] #* 10000).round.to_f/10000
-#     
-#     
-    # #---------    
-    # # tone
-    # beginning_time = Time.now
-    # ton = Tone.new
-    # tone_array = Array.new
-    # tone_array = ton.identify_tone(pos_tagger, core_NLP_tagger, review_text, review_graph)
-    # self.tone_positive = tone_array[0]#* 10000).round.to_f/10000
-    # self.tone_negative = tone_array[1]#* 10000).round.to_f/10000
-    # self.tone_neutral = tone_array[2]#* 10000).round.to_f/10000
-    # #self.tone = "POSITIVE - #{(tone_array[0]* 10000).round.to_f/10000}, NEGATIVE - #{(tone_array[1]* 10000).round.to_f/10000}, NEUTRAL - #{(tone_array[2]* 10000).round.to_f/10000}"
-    # end_time = Time.now
-    # tone_time = end_time - beginning_time
-#    
-#    
-    # # #---------
-    # # quantity
-    # beginning_time = Time.now
-    # quant = TextQuantity.new
-    # self.quantity = quant.number_of_unique_tokens(review_text)
-    # end_time = Time.now
-    # quantity_time = end_time - beginning_time
-# #     
-# #     
-    # # # #---------     
-    # # # fetch version_num for this new response_id if previous versions of this response already exists in the table
-    # @metas = AutomatedMetareview.find(:first, :conditions => ["response_id = ?", self.response_id], :order => "version_num DESC")
-    # if !@metas.nil? and !@metas.version_num.nil?
-      # version = @metas.version_num + 1
-    # else
-      # version = 1 #no metareviews exist with that response_id, so set the version to 1
-    # end
-    # self.version_num = version
-#     
-    # #printing output with time taken by each metric
-    # puts "RELEVANCE ::== #{self.relevance} .. Time elapsed ::= #{relevance_time}"
-    # puts "PLAGIARISM ::== #{self.plagiarism} ..  Time elapsed ::= #{plagiarism_time}"
-    # puts "CONTENT PROBABILITITES ::== SUMMATIVE - #{content_probs[0]}, PROBLEM - #{content_probs[1]}, SUGGESTION - #{content_probs[2]} ..  Time elapsed ::= #{content_time}"
-    # puts "TONE:: Time elapsed ::= #{tone_time}"
-    # puts "self.quantity #{self.quantity} .. Time elapsed ::= #{quantity_time}" 
-    
-    # #dummy variables
-    self.version_num = 1
-    self.content_summative = 0.543232424
-    self.content_problem = 0.43231223 
-    self.content_advisory =  0.321331223
-    self.relevance = 0.543232424
-    self.quantity = 5
-    # self.tone = "positive"
-    self.tone_positive = 0.5346653754
-    self.tone_negative = 0.4235346457
-    self.tone_neutral =  0.21313131223
-    self.plagiarism = false  
-  end
-  
-  def fetch_review_data(map_id, tc)
-    review_array = Array.new
-    @responses = Response.find(:first, :conditions => ["map_id = ?", map_id], :order => "version_num DESC")
-    self.response_id = @responses.id
-    puts "self.response_id #{self.response_id}"
-    #puts "responses version number #{responses.version_num}"
-    @responses.scores.each{
-      | review_score |
-      if(review_score.comments != nil and !review_score.comments.rstrip.empty?)
-        puts review_score.comments
-        review_array << review_score.comments        
-      end
+    speller = Aspell.new("en_US")
+    speller.suggestion_mode = Aspell::NORMAL
+    @review_array = preprocess.check_correct_spellings(@review_array, speller)
+    puts "printing review_array"
+    @review_array.each{
+      |rev|
+      puts rev
     }
-    review_text = tc.get_review(0, review_array) #flag is 0, since it is a single review (although it has several sentences)
-    puts "ReviewArray #{review_array}... length #{review_array.length}.. reviewText.length #{review_text.length}"
-    return review_text 
-  end
-  
-  
-  def fetch_submission_data(map_id, tc)
-    subm_array = Array.new
-    reviewee_id = ResponseMap.find(:first, :conditions => ["id = ?", map_id]).reviewee_id
-    @url = Participant.find(:first, :conditions => ["id = ?", reviewee_id]).submitted_hyperlinks
-    @url = url[url.rindex("http")..url.length-2] #use "rindex" to fetch last occurrence of the substring - useful if there are multiple urls
-    puts "***url #{@url} #{@url.class}"
-    require 'open-uri'
-    page = Nokogiri::HTML(open(@url))
-    page.css('p').each do |subm|
-      puts "subm.text.. #{subm.text}"
-      subm_array << subm.text 
-    end   
-    #sample subm_array
-    # subm_array << "this is good!"
-    # subm_array << "This is interesting!"
     
-    #1 indicates testing, which is how we want to collect the reviews or submissions
-    subm_text = tc.get_review(0, subm_array)
-    # puts "SubmArray length #{subm_array.length}.. submText.class #{subm_text.class} ..submText.length #{subm_text.length}"
-    return subm_text  
+    #checking for plagiarism by comparing with question and responses
+    plag_instance = PlagiarismChecker.new
+    result_comparison = plag_instance.compare_reviews_with_questions_responses(self, map_id)
+    puts "review_array.length #{@review_array.length}"
+    
+    if(result_comparison == ALL_RESPONSES_PLAGIARISED)
+      self.content_summative = 0
+      self.content_problem = 0 
+      self.content_advisory =  0
+      self.relevance = 0
+      self.quantity = 0
+      self.tone_positive = 0
+      self.tone_negative = 0
+      self.tone_neutral =  0
+      self.plagiarism = true
+      puts "All responses are copied!!"
+      return
+    elsif(result_comparison == SOME_RESPONSES_PLAGIARISED)
+      self.plagiarism = true
+    end
+    
+    #checking plagiarism (by comparing responses with search results from google), we look for quoted text, exact copies i.e.
+    google_plagiarised = plag_instance.google_search_response(self)
+    if(google_plagiarised == true)
+      self.plagiarism = true
+    else
+      self.plagiarism = false
+    end
+    
+    puts "length of review array after google check - #{@review_array.length}"
+    
+    if(@review_array.length > 0)
+      #formatting the review responses, segmenting them at punctuations
+      review_text = preprocess.segment_text(0, @review_array)
+      
+      #removing quoted text from reviews
+      review_text = preprocess.remove_text_within_quotes(review_text) #review_text is an array
+      
+      #fetching submission data as an array and segmenting them at punctuations    
+      subm_text = preprocess.segment_text(0, preprocess.fetch_submission_data(map_id))
+      
+      # #initializing the pos tagger and nlp tagger/semantic parser  
+      pos_tagger = EngTagger.new
+      core_NLP_tagger =  StanfordCoreNLP.load(:tokenize, :ssplit, :pos, :lemma, :parse, :ner, :dcoref)
+      
+      #---------    
+      #relevance
+      beginning_time = Time.now
+      relev = DegreeOfRelevance.new
+      self.relevance = relev.get_relevance(review_text, subm_text, 1, pos_tagger, core_NLP_tagger, speller) #1 indicates the number of reviews
+      #assigninging the graph generated for the review to the class variable, in order to reuse it for content classification
+      review_graph = relev.review
+      #calculating end time
+      end_time = Time.now
+      relevance_time = end_time - beginning_time
+      puts "************* relevance_time - #{relevance_time}"      
+      
+      #---------    
+      # checking for plagiarism
+      if(self.plagiarism != true) #if plagiarism hasn't already been set
+        beginning_time = Time.now
+        result = plag_instance.check_for_plagiarism(review_text, subm_text)
+        if(result == true)
+          self.plagiarism = "TRUE"
+        else
+          self.plagiarism = "FALSE"
+        end
+        end_time = Time.now
+        plagiarism_time = end_time - beginning_time
+        puts "************* plagiarism_time - #{plagiarism_time}"
+      end
+      #---------      
+      #content
+      beginning_time = Time.now
+      content_instance = PredictClass.new
+      pattern_files_array = ["app/models/Automated_Metareview/patterns-assess.csv",
+        "app/models/Automated_Metareview/patterns-prob-detect.csv",
+        "app/models/Automated_Metareview/patterns-suggest.csv"]
+      #predcting class - last parameter is the number of classes
+      content_probs = content_instance.predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, pattern_files_array, pattern_files_array.length)
+      #self.content = "SUMMATIVE - #{(content_probs[0] * 10000).round.to_f/10000}, PROBLEM - #{(content_probs[1] * 10000).round.to_f/10000}, SUGGESTION - #{(content_probs[2] * 10000).round.to_f/10000}"
+      end_time = Time.now
+      content_time = end_time - beginning_time
+      self.content_summative = content_probs[0]# * 10000).round.to_f/10000
+      self.content_problem = content_probs[1] #* 10000).round.to_f/10000
+      self.content_advisory = content_probs[2] #* 10000).round.to_f/10000
+      puts "************* content_time - #{content_time}"
+      #---------    
+      # tone
+      beginning_time = Time.now
+      ton = Tone.new
+      tone_array = Array.new
+      tone_array = ton.identify_tone(pos_tagger, core_NLP_tagger, review_text, review_graph)
+      self.tone_positive = tone_array[0]#* 10000).round.to_f/10000
+      self.tone_negative = tone_array[1]#* 10000).round.to_f/10000
+      self.tone_neutral = tone_array[2]#* 10000).round.to_f/10000
+      #self.tone = "POSITIVE - #{(tone_array[0]* 10000).round.to_f/10000}, NEGATIVE - #{(tone_array[1]* 10000).round.to_f/10000}, NEUTRAL - #{(tone_array[2]* 10000).round.to_f/10000}"
+      end_time = Time.now
+      tone_time = end_time - beginning_time
+      puts "************* tone_time - #{tone_time}"
+      # #---------
+      # quantity
+      beginning_time = Time.now
+      quant = TextQuantity.new
+      self.quantity = quant.number_of_unique_tokens(review_text)
+      end_time = Time.now
+      quantity_time = end_time - beginning_time
+      puts "************* quantity_time - #{quantity_time}"
+      # #---------     
+      # # fetch version_num for this new response_id if previous versions of this response already exists in the table
+      @metas = AutomatedMetareview.find(:first, :conditions => ["response_id = ?", self.response_id], :order => "version_num DESC")
+      if !@metas.nil? and !@metas.version_num.nil?
+        version = @metas.version_num + 1
+      else
+        version = 1 #no metareviews exist with that response_id, so set the version to 1
+      end
+      self.version_num = version
+    end
   end
-  
+
   
 =begin
 The following method 'send_metareview_metrics_email' sends an email to the reviewer 
 listing his/her metareview metrics values.  
 =end  
-
-   def send_metareview_metrics_email(response, map_id)
+  def send_metareview_metrics_email(response, map_id)
      response_id = self.response_id
      reviewer_id = ResponseMap.find_by_id(map_id).reviewer
      

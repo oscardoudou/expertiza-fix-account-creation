@@ -9,7 +9,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20120423201555) do
+ActiveRecord::Schema.define(:version => 20121019201555) do
 
   create_table "assignment_questionnaires", :force => true do |t|
     t.integer "assignment_id"
@@ -62,15 +62,22 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "assignments", ["wiki_type_id"], :name => "fk_assignments_wiki_types"
 
   create_table "automated_metareviews", :force => true do |t|
-    t.text     "relevance"
-    t.text     "content"
-    t.text     "tone"
-    t.text     "quantity"
-    t.text     "plagiarism"
-    t.text     "response_id"
+    t.float    "relevance"
+    t.float    "content_summative"
+    t.float    "content_problem"
+    t.float    "content_advisory"
+    t.float    "tone_positive"
+    t.float    "tone_negative"
+    t.float    "tone_neutral"
+    t.integer  "quantity"
+    t.integer  "plagiarism"
+    t.integer  "version_num"
+    t.integer  "response_id"
     t.datetime "created_at"
     t.datetime "updated_at"
   end
+
+  add_index "automated_metareviews", ["response_id"], :name => "fk_automated_metareviews_responses_id"
 
   create_table "comments", :force => true do |t|
     t.integer "participant_id", :default => 0,     :null => false
@@ -250,9 +257,9 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   add_index "question_advices", ["question_id"], :name => "fk_question_question_advices"
 
   create_table "question_types", :force => true do |t|
-    t.string  "q_type",                     :null => false
+    t.string  "q_type",      :default => "", :null => false
     t.string  "parameters"
-    t.integer "question_id", :default => 1, :null => false
+    t.integer "question_id", :default => 1,  :null => false
   end
 
   add_index "question_types", ["question_id"], :name => "fk_question_type_question"
@@ -268,8 +275,8 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
     t.integer  "default_num_choices"
     t.string   "type"
     t.string   "display_type"
-    t.string   "section"
     t.text     "instruction_loc"
+    t.string   "section"
   end
 
   create_table "questions", :force => true do |t|
@@ -300,15 +307,6 @@ ActiveRecord::Schema.define(:version => 20120423201555) do
   end
 
   add_index "responses", ["map_id"], :name => "fk_response_response_map"
-
-  create_table "responses_duplicate", :id => false, :force => true do |t|
-    t.integer  "id",                 :default => 0, :null => false
-    t.integer  "map_id",             :default => 0, :null => false
-    t.text     "additional_comment"
-    t.datetime "created_at"
-    t.datetime "updated_at"
-    t.integer  "version_num"
-  end
 
   create_table "resubmission_times", :force => true do |t|
     t.integer  "participant_id"

@@ -16,6 +16,3 @@ class Vertex
     @pos_tag = pos_tag
   end
 end
-
-# instance =  Vertex.new("hello", 1, 1, 0, 1, 1, 1)
-# puts "vertex name #{instance.name}"

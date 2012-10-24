@@ -1,5 +1,5 @@
-require 'Automated_Metareview/wordnet_based_similarity'
-require 'Automated_Metareview/graph_generator'
+require 'automated_metareview/wordnet_based_similarity'
+require 'automated_metareview/text_preprocessing'
 
 class TextQuantity
   def number_of_unique_tokens(text_array)
@@ -8,24 +8,19 @@ class TextQuantity
     instance = WordnetBasedSimilarity.new
     text_array.each{
       |text|
-      graph_inst = GraphGenerator.new
-      text = graph_inst.contains_punct(text)
-      #puts "text #{text}"
+      tp = TextPreprocessing.new
+      text = tp.contains_punct(text)
       all_tokens = text.split(" ")
-      #puts "allTokens #{allTokens}"
       all_tokens.each{ 
         |token|
         if(!instance.is_frequent_word(token.downcase)) #do not count this word if it is a frequent word
           if(!pre_string.downcase.include?(token.downcase)) #if the token was not already seen earlier i.e. not a part of the preString
-            puts "token .. #{token}"
             count+=1
           end  
         end  
         pre_string = pre_string +" " + token.downcase #adding token to the preString
-        #puts "preString #{preString}"
       }
     }
-    puts "Number of unique tokens #{count}"
     return count
   end
 end

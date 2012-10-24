@@ -1,10 +1,9 @@
-require 'Automated_Metareview/graph_generator'
-require 'Automated_Metareview/wordnet_based_similarity'
-require 'Automated_Metareview/constants'
+require 'automated_metareview/graph_generator'
+require 'automated_metareview/wordnet_based_similarity'
+require 'automated_metareview/constants'
 
 class Tone
   def identify_tone(pos_tagger, core_NLP_tagger, review_text, review_graph)
-    
     speller = Aspell.new("en_US")
     speller.suggestion_mode = Aspell::NORMAL
     
@@ -13,75 +12,74 @@ class Tone
     cumulative_review_tone = [-1, -1, -1] #sum of all edge tones
     
     #extracting positive and negative words from files into arrays
-    positive_file = "app/models/Automated_Metareview/positive-words.csv"
-    negative_file = "app/models/Automated_Metareview/negative-words.csv"
+    positive_file = "app/models/automated_metareview/positive-words.csv"
+    negative_file = "app/models/automated_metareview/negative-words.csv"
     positive = Array.new
     negative = Array.new
     FasterCSV.foreach(positive_file) do |text|
-      #puts "class of read text #{text.class}"
       positive << text[0]
     end
-    #puts "positive list:: #{positive}"
+
     FasterCSV.foreach(negative_file) do |text|
       negative << text[0]
     end
-    #adding other negative words or descriptors to this list
-    # NEGATIVE_DESCRIPTORS.each{
-      # |neg_des|
-      # negative << neg_des
-    # }
+
     negative = negative + NEGATIVE_DESCRIPTORS
-    #puts "negative list:: #{negative}"
-    
-    # g = GraphGenerator.new
-    # g.generate_graph(review_text, pos_tagger, core_NLP_tagger, false, false)
     review_edges = review_graph.edges
+    
+    #if the edges are nil
+    if(review_edges.nil?)
+      return cumulative_review_tone
+    end    
     
     wbsim = WordnetBasedSimilarity.new
     in_feature = Array.new
     out_feature = Array.new
     review_edges.each{
       |edge|
-      puts "#### Checking for edge #{edge.in_vertex.name} - #{edge.out_vertex.name}"
-      if(!edge.in_vertex.nil?)
-        in_feature = get_feature_vector(edge.in_vertex, positive, negative, speller)
-      end  
-      if(!edge.out_vertex.nil?)
-        out_feature = get_feature_vector(edge.out_vertex, positive, negative, speller)
-      end  
-      
-      puts "in_feature :: [#{in_feature[0]}, #{in_feature[1]}]"
-      puts "out_feature :: [#{out_feature[0]}, #{out_feature[1]}]"
-      
-      #making sure that we don't include frequent tokens' tones while calculating cumulative edge tone (both + and -)
-      if(!wbsim.is_frequent_word(edge.in_vertex.name) and !wbsim.is_frequent_word(edge.out_vertex.name))
-        cumulative_edge_feature[0] = (in_feature[0].to_f + out_feature[0].to_f)/2.to_f
-        cumulative_edge_feature[1] = (in_feature[1].to_f + out_feature[1].to_f)/2.to_f
-      elsif(wbsim.is_frequent_word(edge.in_vertex.name) and !wbsim.is_frequent_word(edge.out_vertex.name))
-        cumulative_edge_feature[0] = out_feature[0].to_f
-        cumulative_edge_feature[1] = out_feature[1].to_f
-      elsif(!wbsim.is_frequent_word(edge.in_vertex.name) and wbsim.is_frequent_word(edge.out_vertex.name))
-        cumulative_edge_feature[0] = in_feature[0].to_f
-        cumulative_edge_feature[1] = in_feature[1].to_f
-      else
-        cumulative_edge_feature[0] = 0
-        cumulative_edge_feature[1] = 0
+      if(!edge.nil?)
+        if(!edge.in_vertex.nil?)
+          # puts "#### Checking for edge #{edge.in_vertex.name}"
+          in_feature = get_feature_vector(edge.in_vertex, positive, negative, speller)
+        end  
+        if(!edge.out_vertex.nil?)
+          # puts "#### with outvertex #{edge.out_vertex.name}"
+          out_feature = get_feature_vector(edge.out_vertex, positive, negative, speller)
+        end  
+        
+        # puts "in_feature :: [#{in_feature[0]}, #{in_feature[1]}]"
+        # puts "out_feature :: [#{out_feature[0]}, #{out_feature[1]}]"
+        
+        #making sure that we don't include frequent tokens' tones while calculating cumulative edge tone (both + and -)
+        if(!wbsim.is_frequent_word(edge.in_vertex.name) and !wbsim.is_frequent_word(edge.out_vertex.name))
+          cumulative_edge_feature[0] = (in_feature[0].to_f + out_feature[0].to_f)/2.to_f
+          cumulative_edge_feature[1] = (in_feature[1].to_f + out_feature[1].to_f)/2.to_f
+        elsif(wbsim.is_frequent_word(edge.in_vertex.name) and !wbsim.is_frequent_word(edge.out_vertex.name))
+          cumulative_edge_feature[0] = out_feature[0].to_f
+          cumulative_edge_feature[1] = out_feature[1].to_f
+        elsif(!wbsim.is_frequent_word(edge.in_vertex.name) and wbsim.is_frequent_word(edge.out_vertex.name))
+          cumulative_edge_feature[0] = in_feature[0].to_f
+          cumulative_edge_feature[1] = in_feature[1].to_f
+        else
+          cumulative_edge_feature[0] = 0
+          cumulative_edge_feature[1] = 0
+        end
+        
+        # puts "cumulative_edge_feature :: [#{cumulative_edge_feature[0]}, #{cumulative_edge_feature[1]}]"
+        if((cumulative_review_tone[0] == -1 and cumulative_review_tone[1] == -1) or 
+          (cumulative_review_tone[0] == 0 and cumulative_review_tone[1] == 0)) #has not been initialized as yet
+          cumulative_review_tone[0] = cumulative_edge_feature[0].to_f
+          cumulative_review_tone[1] = cumulative_edge_feature[1].to_f
+        elsif(cumulative_edge_feature[0] > 0 or cumulative_edge_feature[1] > 0)
+          #only edges with some tone (either vertices) are taken into consideration during cumulative edge calculation
+          #else all edges will be considered, which may adversely affect the net tone of the review text
+          cumulative_review_tone[0] = (cumulative_review_tone[0].to_f + cumulative_edge_feature[0].to_f)/2.to_f
+          cumulative_review_tone[1] = (cumulative_review_tone[1].to_f + cumulative_edge_feature[1].to_f)/2.to_f
+        end
+        # puts "cumulative_review_tone :: [#{cumulative_review_tone[0]}, #{cumulative_review_tone[1]}]"
       end
-      
-      puts "cumulative_edge_feature :: [#{cumulative_edge_feature[0]}, #{cumulative_edge_feature[1]}]"
-      if((cumulative_review_tone[0] == -1 and cumulative_review_tone[1] == -1) or 
-        (cumulative_review_tone[0] == 0 and cumulative_review_tone[1] == 0)) #has not been initialized as yet
-        cumulative_review_tone[0] = cumulative_edge_feature[0].to_f
-        cumulative_review_tone[1] = cumulative_edge_feature[1].to_f
-      elsif(cumulative_edge_feature[0] > 0 or cumulative_edge_feature[1] > 0)
-        #only edges with some tone (either vertices) are taken into consideration during cumulative edge calculation
-        #else all edges will be considered, which may adversely affect the net tone of the review text
-        cumulative_review_tone[0] = (cumulative_review_tone[0].to_f + cumulative_edge_feature[0].to_f)/2.to_f
-        cumulative_review_tone[1] = (cumulative_review_tone[1].to_f + cumulative_edge_feature[1].to_f)/2.to_f
-      end
-      puts "cumulative_review_tone :: [#{cumulative_review_tone[0]}, #{cumulative_review_tone[1]}]"
     }
-    puts "cumulative tone :: positive - #{cumulative_review_tone[0]}, negative - #{cumulative_review_tone[1]}"
+    # puts "cumulative tone :: positive - #{cumulative_review_tone[0]}, negative - #{cumulative_review_tone[1]}"
     if(cumulative_review_tone[0] == 0 and cumulative_review_tone[1] == 0)
       cumulative_review_tone[2] = 1 #setting neutrality value
     else
@@ -95,7 +93,6 @@ class Tone
     feature_vector = Array.new #size of the array depends on th number of tone dimensions e.g.[positive, negative, netural]
     feature_vector = [0, 0] #initializing          
     #look for the presence of token in positive set
-    puts "** checking positive"
     if(positive.include?(vertex.name.downcase))
       feature_vector[0] = 1 #
     else 
@@ -105,16 +102,6 @@ class Tone
       synonym_sets = get_synonyms(vertex, threshold, speller) #gets upto 'threshold' levels of synonms in a double dimensional array
       synonym_sets.each{
         |set|  
-        # synonyms = set
-        # synonyms.each{
-          # |syn|
-          # if(in_set(positive, syn, speller))
-            # feature_vector[0] = 1/distance
-            # flag = 1
-            # break
-          # end  
-        # }
-        
         if(positive.length - (positive - set).length > 0)
           feature_vector[0] = 1/distance
           flag = 1
@@ -128,7 +115,6 @@ class Tone
     end  
       
     # repeat above with negative set
-    puts "** checking negative"
     if(negative.include?(vertex.name.downcase))
       feature_vector[1] = 1 #
     else 
@@ -139,15 +125,6 @@ class Tone
       if(!synonym_sets[1].empty?)#i.e. if there were no synonyms identified for the token avoid rechecking for [0] - since that contains the original token
         synonym_sets.each{
           |set|  
-          # synonyms = set
-          # synonyms.each{
-            # |syn|
-            # if(negative.include?(syn))
-              # feature_vector[1] = 1/distance
-              # flag = 1
-              # break
-            # end  
-          # }
           if(negative.length - (negative - set).length > 0)
             feature_vector[1] = 1/distance
             flag = 1
@@ -165,25 +142,6 @@ class Tone
   end
 #--------  
 =begin
- Compares token with every word in the positive or negative opinion lexicon set 
-=end
-  # def in_set(set, token, speller)
-    # wbsim = WordnetBasedSimilarity.new
-    # # token_stem = wbsim.find_stem_word(token, speller)
-    # puts "***looking for #{token}"#..stem #{token_stem}"
-    # set.each{
-      # |ele|
-      # #eleStem = wbsim.find_stem_word(ele, speller)
-      # #puts "comparing with #{ele.downcase}"
-      # if(ele.downcase == token) #or ele.downcase == token_stem or eleStem == token or eleStem == token_stem)
-        # puts "## match found for #{token}.. ele - #{ele}"#"..stem #{eleStem}"
-        # return true #indicates presence
-      # end
-    # }
-    # return false #indicates absence
-  # end
-#--------
-=begin
  getSynonyms - gets synonyms for vertex - upto 'threshold' levels of synonyms
  level 1 = token
  level 2 = token's synonyms
@@ -192,7 +150,6 @@ class Tone
 =end
 
   def get_synonyms(vertex, threshold, speller)
-    #puts "Inside getSynonyms"
     wbsim = WordnetBasedSimilarity.new
     if(vertex.pos_tag.nil?)
       pos = wbsim.determine_POS(vertex)
@@ -222,9 +179,7 @@ class Tone
           end  
         end
         
-        #puts "selected lemma - #{lemma}"
         #error handling for lemmas's without synsets that throw errors! (likely due to the dictionary file we are using)
-        begin #error handling
         #if selected reviewLemma is not nil or empty
         if(!lemma.nil? and lemma != "" and !lemma.synsets.nil?)      
           #creating arrays of all the values for synonyms, hyponyms etc. for the review token
@@ -232,29 +187,26 @@ class Tone
             #fetching the first review synset
             review_lemma_synset = lemma.synsets[g]
             #synonyms
-            rev_lemma_syns = review_lemma_synset.get_relation("&")
-            #for each synset get the values and add them to the array
-            for h in 0..rev_lemma_syns.length - 1
-              #incrementing the array with new synonym words
-              list_new = list_new + rev_lemma_syns[h].words
-              #puts"revLemmaSyns[h].words #{revLemmaSyns[h].words} #{revLemmaSyns[h].words.class}"
+            begin #error handling
+              rev_lemma_syns = review_lemma_synset.get_relation("&")
+              #for each synset get the values and add them to the array
+              for h in 0..rev_lemma_syns.length - 1
+                #incrementing the array with new synonym words
+                list_new = list_new + rev_lemma_syns[h].words
+              end
+            rescue
+              list_new = nil
             end
           end 
         end #end of checking if the lemma is nil or empty
-        rescue
-          puts "lemma doesn't have any synsets"
-        end
       } #end of iterating through revSyn[level]'s tokens
       
-      if(list_new.empty?)
-        #puts "list_new is empty"
+      if(list_new.nil? or list_new.empty?)
         break
       end
-      puts "synonyms in level #{i} are #{list_new[0]}"
       i+=1 #level is incremented
       revSyn[i] = list_new #setting synonyms
     end
     return revSyn
   end
-  
 end

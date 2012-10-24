@@ -1,21 +1,13 @@
-# require './vertex'
-# require './constants'
-# require 'wordnet'
-# require 'stemmer/porter'
-# require 'raspell'
-# require 'engtagger'
-require 'Automated_Metareview/vertex'
-require 'Automated_Metareview/constants'
-require 'wordnet'
+require 'automated_metareview/vertex'
+require 'automated_metareview/constants'
 
 class WordnetBasedSimilarity
   attr_accessor :match, :count
   @@posTagger = EngTagger.new  
   def compare_strings(reviewVertex, submVertex, speller)
-    #include WordNet
     #must fix this to something that is local to the app
     # WordNet::WordNetDB.path = "/usr/local/WordNet-3.0"
-  
+    # WordNet::WordNetDB.path = "/usr/local/Cellar/wordNet/3.0"
     review = reviewVertex.name
     submission = submVertex.name
     reviewState = reviewVertex.state
@@ -36,7 +28,6 @@ class WordnetBasedSimilarity
       elsif(!reviewState.equal?(submState))
         @match = @match + NEGEXACT
       end
-      puts("Found an exact match between vertices!")
       return @match
     end   
     
@@ -44,7 +35,7 @@ class WordnetBasedSimilarity
     #stokSub = submission.split(" ") #should've been inside when doing n * n comparison
     
     #iterating through review tokens
-    for i in (0..stokRev.length-1)
+    # for i in (0..stokRev.length-1)
       #if either of the tokens is null
       if(stokRev[i].nil?)
         next #continue with the next token
@@ -54,48 +45,39 @@ class WordnetBasedSimilarity
         reviewPOS = determine_POS(reviewVertex).strip
       end
       
-      puts("*** RevToken:: #{revToken} ::Review POS:: #{reviewPOS} class #{reviewPOS.class}")
+      # puts("*** RevToken:: #{revToken} ::Review POS:: #{reviewPOS} class #{reviewPOS.class}")
       if(revToken.equal?("n't"))
         revToken = "not"
-        puts("replacing n't")
+        # puts("replacing n't")
       end
       
       #if the review token is a frequent word, continue
       if(is_frequent_word(revToken))
-        puts("Skipping frequent review token .. #{revToken}")
+        # puts("Skipping frequent review token .. #{revToken}")
         next #equivalent of the "continue"
       end
       
       #fetching synonyms, hypernyms, hyponyms etc. for the review token       
-      # revTok = []
-      # revTok << revToken
-      # revStem = []
       revStem = find_stem_word(revToken, speller)     
       #fetching all the relations
       review_relations = get_relations_for_review_submission_tokens(revToken, revStem, reviewPOS)
       #setting the values in specific array variables
       revGloss = review_relations[0]
-      # revExam = review_relations[1]
       revSyn =review_relations[1]
       revHyper = review_relations[2]
       revHypo = review_relations[3]
-      #revMer = review_relations[5]
-      #revHol = review_relations[6]
       revAnt = review_relations[4]
       
-      puts "reviewStem:: #{revStem} .. #{revStem.class}" 
-      puts "reviewGloss:: #{revGloss} .. #{revGloss.class}"  
-      # puts "reviewExam:: #{revExam} .. #{revExam.class}" 
-      puts "reviewSynonyms:: #{revSyn} .. #{revSyn.class}"
-      puts "reviewHypernyms:: #{revHyper} .. #{revHyper.class}"
-      puts "reviewHyponyms:: #{revHypo} .. #{revHypo.class}"
-      #puts "reviewMeronyms:: #{revMer} .. #{revMer.class}"
-      #puts "reviewHolonyms:: #{revHol} .. #{revHol.class}"
-      puts "reviewAntonyms:: #{revAnt} .. #{revAnt.class}"
+      # puts "reviewStem:: #{revStem} .. #{revStem.class}" 
+      # puts "reviewGloss:: #{revGloss} .. #{revGloss.class}"  
+      # puts "reviewSynonyms:: #{revSyn} .. #{revSyn.class}"
+      # puts "reviewHypernyms:: #{revHyper} .. #{revHyper.class}"
+      # puts "reviewHyponyms:: #{revHypo} .. #{revHypo.class}"
+      # puts "reviewAntonyms:: #{revAnt} .. #{revAnt.class}"
         
       stokSub = submission.split(" ")
       #iterating through submission tokens
-      for j in (0..stokSub.length-1)
+      # for j in (0..stokSub.length-1)
       
         if(stokSub[i].nil?)
           next
@@ -106,41 +88,32 @@ class WordnetBasedSimilarity
           submPOS = determine_POS(submVertex).strip
         end
         
-        puts("*** SubToken:: #{subToken} ::Review POS:: #{submPOS}")
+        # puts("*** SubToken:: #{subToken} ::Review POS:: #{submPOS}")
         if(subToken.equal?("n't"))
           subToken = "not"
-          puts("replacing n't")
+          # puts("replacing n't")
         end
         
         #if the review token is a frequent word, continue
         if(is_frequent_word(subToken))
-          puts("Skipping frequent subtoken .. #{subToken}")
+          # puts("Skipping frequent subtoken .. #{subToken}")
           next #equivalent of the "continue"
         end
                     
         #fetching synonyms, hypernyms, hyponyms etc. for the submission token
-        # submTok = []       
-        # submTok << subToken
-        # submStem = []
         submStem = find_stem_word(subToken, speller)
         subm_relations = get_relations_for_review_submission_tokens(subToken, submStem, submPOS)
         submGloss = subm_relations[0]
-        # submExam = subm_relations[1]
         submSyn =subm_relations[1]
         submHyper = subm_relations[2]
         submHypo = subm_relations[3]
-        # submMer = subm_relations[5]
-        # submHol = subm_relations[6]
         submAnt = subm_relations[4]  
-        puts "submStem:: #{submStem}"        
-        puts "submGloss:: #{submGloss}"
-        # puts "submGloss:: #{submExam}"
-        puts "submSynonyms:: #{submSyn}"
-        puts "submHypernyms:: #{submHyper}"
-        puts "submHyponyms:: #{submHypo}"
-        # puts "submMeronyms:: #{submMer}"
-        # puts "submHolonyms:: #{submHol}"
-        puts "submAntonyms:: #{submAnt}" 
+        # puts "submStem:: #{submStem}"        
+        # puts "submGloss:: #{submGloss}"
+        # puts "submSynonyms:: #{submSyn}"
+        # puts "submHypernyms:: #{submHyper}"
+        # puts "submHyponyms:: #{submHypo}"
+        # puts "submAntonyms:: #{submAnt}" 
           
         #------------------------------------------
         #checks are ordered from BEST to LEAST degree of semantic relatedness
@@ -149,7 +122,7 @@ class WordnetBasedSimilarity
         # puts "reviewState.equal?(submState) #{reviewState.equal?(submState)}"
         # puts "reviewPOS.equal?(submPOS) #{reviewPOS == submPOS}"     
         if(subToken.casecmp(revToken) == 0 or submStem.casecmp(revStem) == 0) #EXACT MATCH (submission.toLowerCase().equals(review.toLowerCase()))
-          puts("exact match for #{revToken} & #{subToken} or #{submStem} and #{revStem}")
+          # puts("exact match for #{revToken} & #{subToken} or #{submStem} and #{revStem}")
           if(reviewState.equal?(submState))
             @match = @match + EXACT
           elsif(!reviewState.equal?(submState))
@@ -172,34 +145,24 @@ class WordnetBasedSimilarity
         #------------------------------------------
         #*****For Hypernyms
         if(check_match(revToken, subToken, revHyper, submHyper, revStem, submStem, reviewState, submState, HYPERNYM, NEGHYPERNYM))
-          puts "**** after hyperym match #{@match} - #{@count}"
           next
         end
         #------------------------------------------   
         #*****For Hyponyms
         if(check_match(revToken, subToken, revHypo, submHypo, revStem, submStem, reviewState, submState, HYPONYM, NEGHYPONYM))
-          puts "**** after hyponym match #{@match} - #{@count}"
           next
         end
-        #------------------------------------------
-        # #*****For Meronyms
-        # if(check_match(revTok, submTok, revMer, submMer, revStem, submStem, reviewState, submState, MERONYM, NEGMERONYM))
-          # puts "**** after hyponym match #{@match} - #{@count}"
-          # next
-        # end
-        # #------------------------------------------
-        # #*****For Holonyms
-        # if(check_match(revTok, submTok, revHol, submHol, revStem, submStem, reviewState, submState, HOLONYM, NEGHOLONYM))
-          # puts "**** after hyponym match #{@match} - #{@count}"
-          # next
-        # end       
-        #------------------------------------------ 
+         
         #overlap across definitions   
         # checking if overlaps exist across review and submission tokens' defintions or if either defintiions contains the review
         # or submission token or stem.
-        if((!revGloss.nil? and !submGloss.nil? and overlap(revGloss, submGloss) > 0) or 
-          (!revGloss.nil? and (revGloss.include?(subToken) or revGloss.include?(submStem))) or 
-          (!submGloss.nil? and (submGloss.include?(revToken) or submGloss.include?(revStem))))
+        # puts "#{extract_definition(revGloss)[0]} .. extract_definition(revGloss)[0] #{extract_definition(revGloss)[0][0].class}"
+        # puts "!revGloss #{!revGloss} .. revGloss.class #{revGloss.class}.. revGloss[0].include?(subToken) #{revGloss[0].include?(subToken)}"
+        # rev_def = extract_definition(revGloss)
+        # sub_def = extract_definition(submGloss) 
+        #(!revGloss.nil? and !submGloss.nil? and overlap(revGloss, submGloss, speller) > 0) or
+        if((!revGloss.nil? and !revGloss[0].nil? and !subToken.nil? and !submStem.nil? and (revGloss[0].include?(subToken) or revGloss[0].include?(submStem))) or 
+          (!submGloss.nil? and !submGloss[0].nil? and !revToken.nil? and !revStem.nil? and (submGloss[0].include?(revToken) or submGloss[0].include?(revStem))))
           if(reviewState == submState)
             @match = @match + OVERLAPDEFIN
           elsif(reviewState != submState)
@@ -208,34 +171,19 @@ class WordnetBasedSimilarity
           @count+=1
           next
         end
-        #------------------------------------------
-        #overlap across examples
-        # checking if overlaps exist across review and submission tokens' examples or if either examples contains the review
-        # or submission token or stem.
-        # if((!revExam.nil? and !submExam.nil? and overlap(revExam, submExam) > 0) or 
-          # (!revExam.nil? and (revExam.include?(submToken) or revExam.include?(submStem))) or 
-          # (!submExam.nil? and (submExam.include?(revToken) or submExam.include?(revStem))))
-          # if(reviewState == submState)
-            # @match = @match + OVERLAPEXAM
-          # elsif(reviewState != submState)
-            # @match = @match + NEGOVERLAPEXAM
-          # end
-          # @count+=1
-          # next
-        # end
-        #------------------------------------------  
+        
         #no match found!
-        puts "No Match found!"
+        # puts "No Match found!"
         @match = @match + NOMATCH
         @count+=1
-      end #end of the for loop for submission tokens 
-      #puts "@match outside #{@match}"
-    end #end of the for loop for review tokens
+      # end #end of the for loop for submission tokens 
+    # end #end of the for loop for review tokens
     
     if(@count > 0)
       puts ("Match: #{@match} Count:: #{@count}")
-      puts("@@@@@@@@@ Returning Value: #{(@match.to_f/@count.to_f).round}")
-      return (@match.to_f/@count.to_f).round #an average of the matches found
+      result = (@match.to_f/@count.to_f).round
+      puts("@@@@@@@@@ Returning Value: #{result}")
+      return result #an average of the matches found
     end
     puts("@@@@@@@@@ Returning NOMATCH")
     return NOMATCH
@@ -250,6 +198,7 @@ class WordnetBasedSimilarity
 =end
 
 def get_relations_for_review_submission_tokens(token, stem, pos)
+  # puts "@@@@ Inside get_relations_for_review_submission_tokens"
   relations = Array.new
   lemmas = WordNet::WordNetDB.find(token)
   if(lemmas.nil?)
@@ -258,160 +207,114 @@ def get_relations_for_review_submission_tokens(token, stem, pos)
   #select the lemma corresponding to the token's POS
   lemma = ""
   lemmas.each do |l|
-    puts "lemma's POS :: #{l.pos} and POS :: #{pos}"
-    if(l.pos.casecmp(pos) == 0)
+    # puts "lemma's POS :: #{l.pos} and POS :: #{pos}"
+    if(l.pos == pos)
       lemma = l
+      break
     end  
   end
       
-  puts "Selected lemma :: #{lemma}"
   def_arr = Array.new
-  # exam_arr = Array.new
   syn_arr = Array.new
   hyper_arr = Array.new
   hypo_arr = Array.new
-  # mero_arr = Array.new
-  # holo_arr = Array.new
   anto_arr = Array.new
         
-  #error handling for lemmas's without synsets that throw errors! (likely due to the dictionary file we are using)
-  begin #error handling
   #if selected reviewLemma is not nil or empty
   if(!lemma.nil? and lemma != "" and !lemma.synsets.nil?)      
     #creating arrays of all the values for synonyms, hyponyms etc. for the review token
     for g in 0..lemma.synsets.length - 1
       #fetching the first review synset
       lemma_synset = lemma.synsets[g]
+      
       #definitions
       if(!lemma_synset.gloss.nil?)
         #puts "lemma_synset.gloss.class #{lemma_synset.gloss.class}"
-        def_arr = def_arr extract_definition(lemma_synset.gloss)
-        #def_arr << extract_definition(lemma_synset.gloss)#0
+        if(def_arr[0].nil?)
+          def_arr << extract_definition(lemma_synset.gloss)
+        else
+          def_arr[0] = def_arr[0] + " " + extract_definition(lemma_synset.gloss)
+        end
       else
         def_arr << nil
       end
       
-      #examples
-      # if(!lemma_synset.gloss.nil?)
-        # #puts "lemma_synset.gloss.class #{lemma_synset.gloss.class}"
-        # exam_arr = exam_arr + extract_examples(lemma_synset.gloss)
-        # #exam_arr << extract_examples(lemma_synset.gloss)#1
-      # else
-        # exam_arr << nil
-      # end
-      
       #looking for all relations synonym, hypernym, hyponym etc. from among this synset
       #synonyms
-      lemmaSyns = lemma_synset.get_relation("&")
-      if(!lemmaSyns.nil? and lemmaSyns.length != 0)
-        #for each synset get the values and add them to the array
-        for h in 0..lemmaSyns.length - 1
-          #puts "lemmaSyns[h].words.class #{lemmaSyns[h].words.class}"
-          syn_arr = syn_arr + lemmaSyns[h].words
-          #syn_arr << lemmaSyns[h].words#2
+      begin #error handling for lemmas's without synsets that throw errors! (likely due to the dictionary file we are using)
+        lemmaSyns = lemma_synset.get_relation("&")
+        if(!lemmaSyns.nil? and lemmaSyns.length != 0)
+          # puts "lemmaSyns.length #{lemmaSyns.length}"
+          #for each synset get the values and add them to the array
+          for h in 0..lemmaSyns.length - 1
+            # puts "lemmaSyns[h].words.class #{lemmaSyns[h].words.class}"
+            syn_arr = syn_arr + lemmaSyns[h].words
+            # puts "**** syn_arr #{syn_arr}"
+          end
+        else
+          syn_arr << nil #setting nil when no synset match is found for a particular type of relation
         end
-      else
-        #puts "synonyms are nil"
-        syn_arr << nil #setting nil when no synset match is found for a particular type of relation
+      rescue
+        syn_arr << nil
       end
       
       #hypernyms
-      lemmaHypers = lemma_synset.get_relation("@")#hypernym.words
-      if(!lemmaHypers.nil? and lemmaHypers.length != 0)
-        #for each synset get the values and add them to the array
-        for h in 0..lemmaHypers.length - 1
-          #puts "lemmaHypers[h].words.class #{lemmaHypers[h].words.class}"
-          hyper_arr = hyper_arr + lemmaHypers[h].words
-          #hyper_arr << lemmaHypers[h].words#3
+      begin
+        lemmaHypers = lemma_synset.get_relation("@")#hypernym.words
+        if(!lemmaHypers.nil? and lemmaHypers.length != 0)
+          #for each synset get the values and add them to the array
+          for h in 0..lemmaHypers.length - 1
+            #puts "lemmaHypers[h].words.class #{lemmaHypers[h].words.class}"
+            hyper_arr = hyper_arr + lemmaHypers[h].words
+          end
+        else
+          hyper_arr << nil
         end
-      else
-        #puts "hypernyms are nil"
+      rescue
         hyper_arr << nil
       end
       
       #hyponyms
-      lemmaHypos = lemma_synset.get_relation("~")#hyponym
-      if(!lemmaHypos.nil? and lemmaHypos.length != 0)
-        #for each synset get the values and add them to the array
-        for h in 0..lemmaHypos.length - 1
-          #puts "lemmaHypos[h].words.class #{lemmaHypos[h].words.class}"
-          hypo_arr = hypo_arr + lemmaHypos[h].words
-          #hypo_arr << lemmaHypos[h].words#4
+      begin
+        lemmaHypos = lemma_synset.get_relation("~")#hyponym
+        if(!lemmaHypos.nil? and lemmaHypos.length != 0)
+          #for each synset get the values and add them to the array
+          for h in 0..lemmaHypos.length - 1
+            hypo_arr = hypo_arr + lemmaHypos[h].words
+          end
+        else
+          hypo_arr << nil
         end
-      else
-        #puts "hyponyms are nil"
+      rescue
         hypo_arr << nil
       end
       
-      #meronym
-      # lemmaMeros = lemma_synset.get_relation("%p")
-      # if(!lemmaMeros.nil? and lemmaMeros.length != 0)
-        # #for each synset get the values and add them to the array
-        # for h in 0..lemmaMeros.length - 1
-          # #puts "lemmaMeros[h].words.class #{lemmaMeros[h].words.class}"
-          # add_words_from_array(mero_arr, lemmaMeros[h].words)
-          # #mero_arr << lemmaMeros[h].words#5
-        # end
-      # else
-        # #puts "meronyms are nil"
-        # mero_arr << nil
-      # end
-      
-      #holonyms
-      # lemmaHolos = lemma_synset.get_relation("#p")
-      # if(!lemmaHolos.nil? and lemmaHolos.length != 0)
-        # #for each synset get the values and add them to the array
-        # for h in 0..lemmaHolos.length - 1
-          # #puts "lemmaHolos[h].words.class #{lemmaHolos[h].words.class}"
-          # add_words_from_array(holo_arr, lemmaHolos[h].words)
-          # #holo_arr << lemmaHolos[h].words#6
-        # end
-      # else
-        # #puts "holonyms are nil"
-        # holo_arr << nil
-      # end
-      
       #antonyms
-      lemmaAnts = lemma_synset.get_relation("!")
-      if(!lemmaAnts.nil? and lemmaAnts.length != 0)
-        #for each synset get the values and add them to the array
-        for h in 0..lemmaAnts.length - 1
-          #puts "lemmaAnts[h].words.class #{lemmaAnts[h].words.class}"
-          anto_arr = anto_arr + lemmaAnts[h].words
-          #anto_arr << lemmaAnts[h].words#7
-          #puts "********* ANTONYMS:: #{lemmaAnts[h].words}"
+      begin
+        lemmaAnts = lemma_synset.get_relation("!")
+        if(!lemmaAnts.nil? and lemmaAnts.length != 0)
+          #for each synset get the values and add them to the array
+          for h in 0..lemmaAnts.length - 1
+            anto_arr = anto_arr + lemmaAnts[h].words
+          end
+        else
+          anto_arr << nil
         end
-      else
-        #puts "antonyms are nil"
+      rescue
         anto_arr << nil
       end         
-    end  
+    end #end of the for loop for g  
   end #end of checking if the lemma is nil or empty
-  rescue
-    puts "The lemma doesn't have any synsets"
-  end
+
+  #setting the array elements before returning the array
   relations << def_arr
-  # relations << exam_arr
   relations << syn_arr
   relations << hyper_arr
   relations << hypo_arr
-  # relations << mero_arr
-  # relations << holo_arr
   relations << anto_arr
-  puts "relations[0].class #{relations.class} .. relations[0][0].class #{relations[0][0].class}"
-  puts "@@@@ Inside get_relations_for_review_submission_tokens .. #{relations.length}"
   return relations
 end
-#------------------------------------------------------------------------------
-# def add_words_from_array(orig_arr, arr_words)
-  # #puts "orig_arr.length:: #{orig_arr.length} and arr_words.length #{arr_words.length}"
-  # arr_words.each{
-    # |arr|
-    # orig_arr << arr
-  # }
-   # #puts "AFTER orig_arr.length:: #{orig_arr.length}"
-  # return orig_arr
-# end
+
 #------------------------------------------------------------------------------
 =begin
  This method compares the submission and reviews' synonyms and antonyms with each others' tokens and stem values.
@@ -419,13 +322,10 @@ end
 =end
 def check_match(rev_token, subm_token, rev_arr, subm_arr, rev_stem, subm_stem, rev_state, subm_state, match_type, non_match_type)
   flag = 0 #indicates if a match was found
-  #puts("check_match between: #{rev_token} & #{subm_token} match_type #{match_type} and non_match_type #{non_match_type}")
-  #puts rev_arr
+  # puts("check_match between: #{rev_token} & #{subm_token} match_type #{match_type} and non_match_type #{non_match_type}")
   # puts "rev_arr #{rev_arr}"
-  # puts "rev_arr #{subm_arr}"
-  #puts "!rev_arr.nil? and !subm_arr.nil? #{!rev_arr.nil?} and #{!subm_arr.nil?}"
-  if((!rev_arr.nil? and !subm_arr.nil? and (rev_arr.length - (rev_arr - subm_arr).length > 0)) or 
-    (!rev_arr.nil? and (rev_arr.include?(subm_token) or rev_arr.include?(subm_stem))) or 
+  # puts "subm_arr #{subm_arr}"
+  if((!rev_arr.nil? and (rev_arr.include?(subm_token) or rev_arr.include?(subm_stem))) or 
     (!subm_arr.nil? and (subm_arr.include?(rev_token) or subm_arr.include?(rev_stem))))          
     puts("Match found between: #{rev_token} & #{subm_token}")
     flag = 1 #setting the flag to indicate that a match was found
@@ -434,7 +334,6 @@ def check_match(rev_token, subm_token, rev_arr, subm_arr, rev_stem, subm_stem, r
     elsif(rev_state != subm_state)
       @match = @match+ non_match_type
     end
-    puts("@@ Match: #{@match}")
     @count+=1
   end
   if(flag == 1)
@@ -446,32 +345,12 @@ end
 
 #------------------------------------------------------------------------------
 
-# def compare_arrays(arrs1, arrs2) #the first argument is an array, while the second is an array containing a single token
-  # #puts "inside compare_arrays"
-  # arrs1.each{
-    # |arr1|
-    # arrs2.each{
-      # |arr2|
-      # #puts "comparing #{arr1} & #{arr2}"
-      # #the condition checks for an exact match between the array's elements as well as the token or stem OR
-      # # if the array contains the token or stem as a substring (since some array elements may be phrases)
-      # if(!arr1.nil? and !arr2.nil? and (arr1.downcase == arr2.downcase or arr1.downcase.include?(arr2.downcase)))
-        # puts "match between #{arr1} and #{arr2}"
-        # return true
-      # end
-    # }
-  # }
-  # return false
-# end
-
-#------------------------------------------------------------------------------
-
 =begin
  determine_POS - method helps identify the POS tag (for the wordnet lexicon) for a certain word 
 =end
 def determine_POS(vert)
   str_pos = vert.pos_tag
-  puts("Inside determine_POS POS Tag:: #{str_pos}")
+  # puts("Inside determine_POS POS Tag:: #{str_pos}")
   if(str_pos.include?("CD") or str_pos.include?("NN") or str_pos.include?("PR") or str_pos.include?("IN") or str_pos.include?("EX") or str_pos.include?("WP"))
     pos = "n"#WordNet::Noun
   elsif(str_pos.include?("JJ"))
@@ -483,38 +362,10 @@ def determine_POS(vert)
   else
     pos = "n" #WordNet::Noun
   end
-  #puts("Part of Speech:: #{pos}")
   return pos
 end
-#------------------------------------------------------------------------------  
-=begin
- 'is_stop_word' method checks to see if the word is a stop word or frequently used word  
-=end
-# def is_stop_word(word)
-  # #constants con = new constants();
-  # #removing any (, ), [, ] in the string 
-  # word.gsub!("(", "") #gsub replaces all occurrences of "(" and the exclamation point helps to do in-place substitution
-  # word.gsub!(")", "") #if the character doesn't exist, the function returns nil, which does not affect the existing variable
-  # word.gsub!("[", "")
-  # word.gsub!("]", "")
-  # word.gsub!("\"", "")
-#   
-  # #checking for closed class words
-  # for i in (0..CLOSED_CLASS_WORDS.length-1) #(int i = 0; i < constants.CLOSED_CLASS_WORDS.length; i++)
-    # if(word.casecmp(CLOSED_CLASS_WORDS[i]) == 0)
-      # return true
-    # end
-  # end      
-#   
-  # #checking for stopwords
-  # for i in (0..STOP_WORDS.length-1) #(int i = 0; i < constants.STOP_WORDS.length; i++)
-    # if(word.casecmp(STOP_WORDS[i]) == 0)
-      # return true
-    # end    
-    # return false    
-  # end
-# end
-#------------------------------------------------------------------------------      
+
+#------------------------------------------------------------------------------     
 =begin
   is_frequent_word - method checks to see if the given word is a frequent word
 =end
@@ -524,39 +375,14 @@ def is_frequent_word(word)
   word.gsub!("[", "")
   word.gsub!("]", "")
   word.gsub!("\"", "")
-  
-  #checking if the word is a frequent word
-  # for i in (0..FREQUENT_WORDS.length-1)
-    # #puts FREQUENT_WORDS[i]
-    # if(word.casecmp(FREQUENT_WORDS[i]) == 0)
-      # return true
-    # end
-  # end
+
   if(FREQUENT_WORDS.include?(word))
     return true
   end
-  
-  #checking if the word is a frequent word
-  # for i in (0..CLOSED_CLASS_WORDS.length-1)
-    # #puts CLOSED_CLASS_WORDS[i]
-    # if(word.casecmp(CLOSED_CLASS_WORDS[i]) == 0)
-      # return true
-    # end
-  # end
+
   if(CLOSED_CLASS_WORDS.include?(word))
     return true
   end  
-  
-    #checking if the word is a frequent word
-  # for i in (0..STOP_WORDS.length-1)
-    # #puts STOP_WORDS[i]
-    # if(word.casecmp(STOP_WORDS[i]) == 0)
-      # return true
-    # end
-  # end
-  # if(STOP_WORDS.include?(word))
-    # return true
-  # end
   
   return false
 end #end of is_frequent_word method
@@ -567,8 +393,6 @@ end #end of is_frequent_word method
 =end
 def find_stem_word(word, speller)
   stem = word.stem
-  #puts "stem inside find_stem_word #{stem}"
-  
   correct = stem #initializing correct to the stem word
   #checkiing the stem word's spelling for correctness
   while(!speller.check(correct)) do
@@ -579,62 +403,48 @@ def find_stem_word(word, speller)
       break #break out of the loop if the first correction was nil
     end
   end
-  #puts "**** stem for #{word} is #{correct}"  
   return correct
 end #end of is_frequent_word method
+
 #------------------------------------------------------------------------------
+
 =begin
  This method is used to extract definitions for the words (since glossed contain definitions and examples!)
  glosses - string containing the gloss of the synset 
 =end
 def extract_definition(glosses)
-  #puts "***** Inside extract_definition"
-  definitions = []
+  definitions = ""#[]
   #extracting examples from definitions
   temp = glosses
   tempList = temp.split(";")
   for i in 0..tempList.length - 1
     if(!tempList[i].include?('"'))
-      definitions << tempList[i]
+      if(definitions.empty?)
+        definitions = tempList[i]
+      else
+        definitions = definitions +" "+ tempList[i]
+      end
     end
   end
   #puts definitions
   return definitions
 end
-
-#------------------------------------------------------------------------------
-# def extract_examples(glosses) #glosses is a single gloss with possibly many examples
-  # #puts "***** Inside extract_examples"
-  # examples = []  
-  # #extracting examples from definitions
-  # temp = glosses
-  # tempList = temp.split(";")
-  # for i in 0..tempList.length - 1
-    # #puts " printing #{tempList[i]}"
-    # if(tempList[i].include?('"'))
-      # examples << tempList[i]
-    # end
-  # end
-  # #puts examples
-  # return examples
-# end
-
 #------------------------------------------------------------------------------
 
-def overlap(def1, def2)
-  speller = Aspell.new("en_US")
-  speller.suggestion_mode = Aspell::NORMAL
+def overlap(def1, def2, speller)
   instance = WordnetBasedSimilarity.new
   numOverlap = 0
   #only overlaps across the ALL definitions
-  # puts "def1.length #{def1.length}"
-  # puts "def2.length #{def2.length}"
+  puts "def1 #{def1}"
+  puts "def2 #{def2}"
   
   #iterating through def1's definitions
   for i in 0..def1.length-1
     if(!def1[i].nil?)
       #puts "def1[#{i}] #{def1[i]}"
-      def1[i].gsub!("\"", " ")
+      if( def1[i].include?("\""))
+        def1[i].gsub!("\"", " ")
+      end
       if(def1[i].include?(";"))
         def1[i] = def1[i][0..def1[i].index(";")]
       end
@@ -655,7 +465,7 @@ def overlap(def1, def2)
               # puts "tok1stem #{tok1stem} and tok2stem #{tok2stem}"
               if((tok1.downcase == tok2.downcase or tok1stem.downcase == tok2stem.downcase) and 
                 !instance.is_frequent_word(tok1) and !instance.is_frequent_word(tok1stem))
-                puts("**Overlap def/ex:: #{tok1} or #{tok1stem}")
+                # puts("**Overlap def/ex:: #{tok1} or #{tok1stem}")
                 numOverlap+=1
               end
             end #end of s2 loop
@@ -664,12 +474,7 @@ def overlap(def1, def2)
       end #end of for loop for def2 - j
     end #end of if def1[i][0] being null
   end #end of for loop for def1 - i
-  puts "numOverlap #{numOverlap}"
   return numOverlap
 end
 #------------------------------------------------------------------------------
 end #end of WordnetBasedSimilarity class
-
-
-
-

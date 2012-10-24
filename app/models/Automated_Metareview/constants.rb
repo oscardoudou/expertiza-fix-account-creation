@@ -1,6 +1,9 @@
-require 'wordnet'
+require 'wordnet' 
+#necessary to access the data.{po} files in the wordnet/dict folder of the rwordnet gem
+include WordNet
 WordNet::SynsetType = {"n" => "noun", "v" => "verb", "a" => "adj", "r" => "adv"}
-
+    
+    
 # Create a parser object
 #frequently used general constants
 #prevtype tokens for graph generator
@@ -61,9 +64,12 @@ NEGEXACT = -6 #exact strings
 
 #for plgiarism checking - n-gram
 NGRAM = 5 #5-gram matches
+#other constants for plagiarism checking
+ALL_RESPONSES_PLAGIARISED = 1
+SOME_RESPONSES_PLAGIARISED = 2
 #------------------------------------------#------------------------------------------
 
-#constants from TEXTCOLLECTION
+#constants from text_preprocessing
 SIM_MATCH = 5
 SENTENCES = 100  #assuming each review has upto 5 sentences max.
 MAX = 3000

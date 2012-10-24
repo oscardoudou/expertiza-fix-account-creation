@@ -1,10 +1,10 @@
-require 'Automated_Metareview/negations'
-require 'Automated_Metareview/constants'
+require 'automated_metareview/negations'
+require 'automated_metareview/constants'
 
 class SentenceState
   attr_accessor :broken_sentences
   def identify_sentence_state(str_with_pos_tags)
-    puts("**** Inside identify_sentence_state #{str_with_pos_tags}")
+    # puts("**** Inside identify_sentence_state #{str_with_pos_tags}")
     #break the sentence at the co-ordinating conjunction
     num_conjunctions = break_at_coordinating_conjunctions(str_with_pos_tags)
     
@@ -15,7 +15,6 @@ class SentenceState
     else
       for i in (0..num_conjunctions)
         if(!@broken_sentences[i].nil?)
-          puts("broken_sentences[i]:: #{@broken_sentences[i]}")
           states_array[i] = sentence_state(@broken_sentences[i])
         end
       end
@@ -58,7 +57,6 @@ class SentenceState
 
   #Checking if the token is a negative token
   def sentence_state(str_with_pos_tags)
-    puts("***** Checking sentence state:: #{str_with_pos_tags}")
     state = POSITIVE
     #checking single tokens for negated words
     st = str_with_pos_tags.split(" ")
@@ -78,7 +76,7 @@ class SentenceState
       end
       #removing punctuations 
       if(ps.include?("."))
-        tokens[i] = ps[0..ps.index(".")-1] #ps.replaceAll(".", "") - DOESNT WORK
+        tokens[i] = ps[0..ps.index(".")-1]
       elsif(ps.include?(","))
         tokens[i] = ps.gsub(",", "")
       elsif(ps.include?("!"))
@@ -89,13 +87,11 @@ class SentenceState
         tokens[i] = ps
         i+=1
       end     
-      #puts "tokens[i] .. #{tokens[i-1]}"
     end#end of the for loop
     
     #iterating through the tokens to determine state
     prev_negative_word =""
     for j  in (0..i-1)
-      #puts("tokens[#{j}]: #{tokens[j]}")
       #checking type of the word
       #checking for negated words
       if(is_negative_word(tokens[j]) == NEGATED)  
@@ -124,10 +120,6 @@ class SentenceState
       #----------------------------------------------------------------------
       #comparing 'returnedType' with the existing STATE of the sentence clause
       #after returnedType is identified, check its state and compare it to the existing state
-      
-      puts("token:: "+tokens[j]+" returnedType:: #{returned_type} STATE:: #{state} interim_noun_verb #{interim_noun_verb}" )
-      #puts("prevNegativeWord:: #{prevNegativeWord}")
-      
       #if present state is negative and an interim non-negative or non-suggestive word was found, set the flag to true
       if((state == NEGATIVE_WORD or state == NEGATIVE_DESCRIPTOR or state == NEGATIVE_PHRASE) and returned_type == POSITIVE)
         if(interim_noun_verb == false and (tagged_tokens[j].include?("NN") or tagged_tokens[j].include?("PR") or tagged_tokens[j].include?("VB") or tagged_tokens[j].include?("MD")))
@@ -207,8 +199,6 @@ class SentenceState
         end
       #when state is suggestive
       elsif(state == SUGGESTIVE) #e.g.:"I might(S) not(-) suggest(S) ..."
-        #if(tokens[j].casecmp("not") == 0 or tokens[j].casecmp("n't") == 0) #e.g. "I could not..."
-          #state = NEGATIVE_WORD
         if(returned_type == NEGATIVE_DESCRIPTOR)
           state = NEGATIVE_DESCRIPTOR
         elsif(returned_type == NEGATIVE_PHRASE)
@@ -229,7 +219,6 @@ class SentenceState
       state = NEGATED
     end
     
-    puts("*** Complete Sentence State:: #{state}")
     return state
   end
   
@@ -301,18 +290,4 @@ def is_suggestive_phrase(phrase)
   return not_suggestive
 end
 
-#------------------------------------------#------------------------------------------      
 end #end of the class
-
-=begin
-### Test code
-posTagger = EngTagger.new
-instance = SentenceState.new
-taggedString = posTagger.get_readable("Alice had taken from the big fat cat.")
-puts "taggedString:: #{taggedString}"
-states = instance.identifySentenceState(taggedString)
-
-for j in (0..states.length - 1)
-  puts states[j]
-end
-=end

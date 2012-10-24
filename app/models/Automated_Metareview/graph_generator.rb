@@ -1,15 +1,15 @@
-require 'Automated_Metareview/sentence_state'
-require 'Automated_Metareview/Edge'
-require 'Automated_Metareview/vertex'
+require 'automated_metareview/sentence_state'
+require 'automated_metareview/edge'
+require 'automated_metareview/vertex'
 
 class GraphGenerator
 #include SentenceState 
 #creating accessors for the instance variables
 attr_accessor :vertices, :num_vertices, :edges, :num_edges, :pipeline, :pos_tagger
 
-#global variables
-$vertices = Array.new
-$edges = Array.new
+# #global variables
+# $vertices = Array.new
+# $edges = Array.new
 
 =begin
    * generates the graph for the given review text and 
@@ -18,7 +18,6 @@ $edges = Array.new
    * type = 1 - submission/past review
    * type = 2 - new review
 =end
-  
 def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIdentify)
   #initializing common arrays 
   @vertices = Array.new
@@ -28,17 +27,15 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
 
   @pos_tagger = pos_tagger #part of speech tagger
   @pipeline = coreNLPTagger #dependency parsing
-  puts "text.class #{text.class}.. text.length - #{text.length}"
   #iterate through the sentences in the text
   for i in (0..text.length-1)
     if(text[i].empty? or text[i] == "" or text[i].split(" ").empty?)
       next
     end
     unTaggedString = text[i].split(" ")
-    puts "UnTagged String:: #{unTaggedString}"
-    
+    # puts "UnTagged String:: #{unTaggedString}"
     taggedString = @pos_tagger.get_readable(text[i])
-    puts "taggedString:: #{taggedString}"
+    # puts "taggedString:: #{taggedString}"
     
     #Initializing some arrays
     nouns = Array.new
@@ -71,7 +68,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
     #------------------------------------------#------------------------------------------
     
     taggedString = taggedString.split(" ")
-    puts "Tokenized String:: #{taggedString}"
     prevType = nil #initlializing the prevyp
     
     #iterate through the tokens
@@ -83,22 +79,20 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
       if(plainToken == "." or taggedToken.include?("/POS") or (taggedToken.index("/") == taggedToken.length()-1) or (taggedToken.index("/") == taggedToken.length()-2))#this is for strings containinig "'s" or without POS
         next
       end
-      #puts "plainToken #{plainToken}"  
+      
       #SETTING STATE
       #since the CC or IN are part of the following sentence segment, we set the STATE for that segment when we see a CC or IN
       if(taggedToken.include?("/CC"))#{//|| ps.contains("/IN")
         state = states_array[states_counter]
         states_counter+=1
-        #puts("^^^^NEW STATE:: #{state}")
       end
-      puts("**Value:: #{plainToken} LabelCounter:: #{labelCounter} ParentCounter:: #{parentCounter} POStag:: #{posTag} .. state = #{state}")
-      puts "** prevType = #{prevType}"  
+      # puts("**Value:: #{plainToken} LabelCounter:: #{labelCounter} ParentCounter:: #{parentCounter} POStag:: #{posTag} .. state = #{state}")
+
       #------------------------------------------
       #if the token is a noun
       if(taggedToken.include?("NN") or taggedToken.include?("PRP") or taggedToken.include?("IN") or taggedToken.include?("/EX") or taggedToken.include?("WP"))
         #either add on to a previous vertex or create a brand new noun vertex
         if(prevType == NOUN) #adding to a previous noun vertex
-          puts("PREV Noun here:: #{plainToken}")
            nCount -= 1 #decrement, since we are accessing a previous noun vertex
            prevVertex = search_vertices(@vertices, nouns[nCount], i) #fetching the previous vertex
            nouns[nCount] = nouns[nCount].to_s + " " + plainToken #concatenating with contents of the previous noun vertex
@@ -112,7 +106,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
               #fAppendedVertex = 1
            end#if the vertex already exists, just use nounVertex - the returned vertex for ops.          
         else #if the previous token is not a noun, create a brand new vertex
-           puts("NEW Noun here:: #{plainToken}")
            nouns[nCount] = plainToken #this is checked for later on
            nounVertex = search_vertices(@vertices, plainToken, i)
            if(nounVertex == nil) #the string doesn't already exist
@@ -147,7 +140,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             v2 = nounVertex #the noun vertex that was just created
             #if such an edge did not already exist
             if(!v1.nil? and !v2.nil? and (e = search_edges(@edges, v1, v2, i)) == -1)
-              puts "** Adding adj-noun edge .. #{v1.name} - #{v2.name}"
               @edges[@num_edges] = Edge.new("noun-property",VERB)
               @edges[@num_edges].in_vertex = v1
               @edges[@num_edges].out_vertex = v2
@@ -164,7 +156,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             v2 = nounVertex
             #if such an edge does not already exist add it
             if(!v1.nil? and !v2.nil? and (e = search_edges(@edges,v1, v2, i)) == -1)
-              puts "** Adding verb-noun edge .. #{v1.name} - #{v2.name}"
               @edges[@num_edges] = Edge.new("verb", VERB)             
               @edges[@num_edges].in_vertex = v1 #for vCount = 0
               @edges[@num_edges].out_vertex = v2
@@ -174,22 +165,21 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
               remove_redundant_edges(v1, v2, i)
             end
           end
-          #fAppendedVertex = 0 #resetting the appended vertex flag
           prevType = NOUN
       #------------------------------------------
+      
       #if the string is an adjective
       #adjectives are vertices but they are not connected by an edge to the nouns, instead they are the noun's properties
       elsif(taggedToken.include?("/JJ"))                  
         adjective = nil
         if(prevType == ADJ) #combine the adjectives
-          puts("PREV ADJ here:: #{plainToken}")
+          # puts("PREV ADJ here:: #{plainToken}")
           if(adjCount >= 1)
             adjCount = adjCount - 1
             prevVertex = search_vertices(@vertices, adjectives[adjCount], i) #fetching the previous vertex
             adjectives[adjCount] = adjectives[adjCount] + " " + plainToken              
             #if the concatenated vertex didn't already exist
             if((adjective = search_vertices(@vertices, adjectives[adjCount], i)).nil?)
-              #puts "prevVertex #{prevVertex.name} - plainToken #{plainToken} #{prevVertex.name.class} - #{plainToken.class} ... prevVertex.name.. plainToken #{prevVertex.name+" "+plainToken + " "}"
               prevVertex.name = prevVertex.name+" "+plainToken
               adjective = prevVertex #set it as "adjective" for further execution
               if(labels[labelCounter] != "NMOD" or labels[labelCounter] != "PMOD") #resetting labels for the concatenated vertex
@@ -198,7 +188,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             end
           end
         else #new adjective vertex
-          puts("NEW ADJ here:: #{plainToken}")
           adjectives[adjCount] = plainToken
           if((adjective = search_vertices(@vertices, plainToken, i)).nil?) #the string doesn't already exist
             @vertices[@num_vertices] = Vertex.new(adjectives[adjCount], ADJ, i, state, labels[labelCounter], parents[parentCounter], posTag)
@@ -215,7 +204,7 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
           v2 = adjective #the current adjective vertex
           #if such an edge does not already exist add it
           if(!v1.nil? and !v2.nil? and (e = search_edges(@edges, v1, v2, i)) == -1)
-            puts "** Adding noun-adj edge .. #{v1.name} - #{v2.name}"
+            # puts "** Adding noun-adj edge .. #{v1.name} - #{v2.name}"
             @edges[@num_edges] = Edge.new("noun-property",VERB)
             @edges[@num_edges].in_vertex = v1
             @edges[@num_edges].out_vertex = v2
@@ -228,9 +217,9 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
         prevType = ADJ
         #end of if condition for adjective
         #------------------------------------------
+        
         #if the string is a verb or a modal//length condition for verbs is, be, are...
         elsif(taggedToken.include?("/VB") or taggedToken.include?("MD"))
-          puts("***VB #{plainToken} index:: #{i}")
           verbVertex = nil
           if(prevType == VERB) #combine the verbs            
             vCount = vCount - 1
@@ -244,11 +233,9 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
                 verbVertex.label = labels[labelCounter]
               end
             end
-            #fAppendedVertex = 1
           else
             verbs[vCount] = plainToken
             if((verbVertex = search_vertices(@vertices, plainToken, i)) == nil)
-              #System.out.println("setting vertex "+s + "num_vertices "+num_vertices);
               @vertices[@num_vertices] = Vertex.new(plainToken, VERB, i, state, labels[labelCounter], parents[parentCounter], posTag)
               verbVertex = @vertices[@num_vertices] #newly created verb vertex will be considered in the future
               @num_vertices+=1
@@ -278,7 +265,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             v2 = verbVertex
             #if such an edge did not already exist
             if(!v1.nil? and !v2.nil? and (e = search_edges(@edges, v1, v2, i)) == -1)
-              puts "** Adding verb-adverb edge .. #{v1.name} - #{v2.name}"
               @edges[@num_edges] = Edge.new("verb-property",VERB)
               @edges[@num_edges].in_vertex = v1
               @edges[@num_edges].out_vertex = v2
@@ -296,7 +282,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             v2 = verbVertex
             #if such an edge does not already exist add it
             if(!v1.nil? and !v2.nil? and (e = search_edges(@edges, v1, v2, i)) == -1)
-              puts "** Adding noun-verb edge .. #{v1.name} - #{v2.name}"
               @edges[@num_edges] = Edge.new("verb",VERB)
               @edges[@num_edges].in_vertex = v1 #for nCount = 0;
               @edges[@num_edges].out_vertex = v2 #the verb
@@ -306,12 +291,10 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
               remove_redundant_edges(v1, v2, i)
             end
           end
-          #fAppendedVertex = 0 #resetting the flag
           prevType = VERB
         #------------------------------------------ 
         #if the string is an adverb
         elsif(taggedToken.include?("RB"))
-          puts("Adverb #{plainToken}")                  
           adverb = nil
           if(prevType == ADV) #appending to existing adverb
             if(advCount >= 1)
@@ -344,7 +327,6 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
             v2 = adverb
             #if such an edge does not already exist add it
             if(!v1.nil? and !v2.nil? && (e = search_edges(@edges, v1, v2, i)) == -1)
-              puts "** Adding verb-adverb edge .. #{v1.name} - #{v2.name}"
               @edges[@num_edges] = Edge.new("verb-property",VERB)
               @edges[@num_edges].in_vertex = v1 #for nCount = 0;
               @edges[@num_edges].out_vertex = v2 #the verb
@@ -368,18 +350,13 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
     adjectives = nil
     adverbs = nil
   end #end of number of sentences in the text
-  # if(forRelevance == false and forPatternIdentify == true)
-    # @edges = identify_frequency_and_prune_edges(@edges, @num_edges)
-  # end  
+
   @num_vertices = @num_vertices - 1 #since as a counter it was 1 ahead of the array's contents
   @num_edges = @num_edges - 1 #same reason as for num_vertices
-  #$edges = @edges
-  #$vertices = @vertices
-  #puts "here outside the loop where sentences are read"
   set_semantic_labels_for_edges
-  print_graph(@edges, @vertices)
-  puts("Number of edges:: #{@num_edges}")
-  puts("Number of vertices:: #{@num_vertices}")
+  #print_graph(@edges, @vertices)
+  # puts("Number of edges:: #{@num_edges}")
+  # puts("Number of vertices:: #{@num_vertices}")
   return @num_edges
 end #end of the graphGenerate method
 
@@ -390,12 +367,12 @@ def search_vertices(list, s, index)
       if(!list[i].nil? and !s.nil?)      
         #if the vertex exists and in the same sentence (index)
         if(list[i].name.casecmp(s) == 0 and list[i].index == index)
-          puts("***** search_vertices:: Returning:: #{s}")
+          # puts("***** search_vertices:: Returning:: #{s}")
           return list[i]
         end
       end
     end
-    puts("***** search_vertices:: Returning nil")
+    # puts("***** search_vertices:: Returning nil")
     return nil
 end #end of the search_vertices method
 
@@ -406,27 +383,23 @@ NULLIFY ALL VERTICES CONTAINING "ONLY SUBSTRINGS" (and not exact matches) OF THI
 And reset the @vertices array with non-null elements.
 =end
 def remove_redundant_vertices(s, index)
-  puts "**** remove_redundant_vertices:: string #{s}"
+  # puts "**** remove_redundant_vertices:: string #{s}"
   j = @num_vertices - 1
   verts = @vertices
   while j >= 0
    if(!verts[j].nil? and verts[j].index == index and s.casecmp(verts[j].name) != 0 and 
      (s.downcase.include?(verts[j].name.downcase) and verts[j].name.length > 1)) 
      #the last 'length' condition is added so as to prevent "I" (an indiv. vertex) from being replaced by nil
-     puts "*** string index = #{index}... verts[j].index = #{verts[j].index}"
-     puts "**** remove_redundant_vertices setting #{verts[j].name} to nil!"
+     # puts "*** string index = #{index}... verts[j].index = #{verts[j].index}"
+     # puts "**** remove_redundant_vertices setting #{verts[j].name} to nil!"
      #search through all the edges and set those with this vertex as in-out- vertex to null
      if(!@edges.nil?)
        for i in 0..@edges.length - 1
          edge = @edges[i]
-         puts "here .. #{i}"
          if(!edge.nil? and (edge.in_vertex == verts[j] or edge.out_vertex == verts[j]))
-           puts "edge #{edge.in_vertex.name} - #{edge.out_vertex.name}"
+           # puts "edge #{edge.in_vertex.name} - #{edge.out_vertex.name}"
            @edges[i] = nil #setting that edge to nil
-         end
-         if(!edge.nil?)
-          puts "edge #{edge.in_vertex.name} - #{edge.out_vertex.name}"
-         end  
+         end 
        end
      end
      #finally setting the vertex to  null
@@ -435,22 +408,19 @@ def remove_redundant_vertices(s, index)
    j-=1
   end #end of while loop
 
-  puts "**** remove_redundant_vertices Old @num_vertices:: #{@num_vertices}"          
+  # puts "**** remove_redundant_vertices Old @num_vertices:: #{@num_vertices}"          
   #recreating the vertices array without the nil values
   counter = 0
   vertices_array = Array.new
   for i in (0..verts.length-1)
     vertex = verts[i]
     if(!vertex.nil?)
-      puts "vertex:: #{vertex.name}"
       vertices_array << vertex
       counter+=1
     end
   end 
   @vertices = vertices_array
   @num_vertices = counter+1 #since @num_vertices is always one advanced of the last vertex
-      
-  puts "**** remove_redundant_vertices New number of vertices:: #{@num_vertices}"
 end  
   
 #------------------------------------------#------------------------------------------#------------------------------------------
@@ -462,10 +432,10 @@ end
 =end
 def search_edges(list, in_vertex, out, index)
   edgePos = -1
-  puts("***** Searching for edge:: #{in_vertex.name} - #{out.name}")
   if(list.nil?)#if the list is null
     return edgePos
   end
+  
   for i in (0..list.length-1)
     if(!list[i].nil? and !list[i].in_vertex.nil? and !list[i].out_vertex.nil?)
       #checking for exact match with an edge
@@ -473,7 +443,7 @@ def search_edges(list, in_vertex, out, index)
         (list[i].out_vertex.name.casecmp(out.name)==0 or list[i].out_vertex.name.include?(out.name))) or 
         ((list[i].in_vertex.name.casecmp(out.name)==0 or list[i].in_vertex.name.include?(out.name)) and 
         (list[i].out_vertex.name.casecmp(in_vertex.name)==0 or list[i].out_vertex.name.include?(in_vertex.name))))
-        puts("***** Found edge! : index:: #{index} list[i].index:: #{list[i].index}")
+        # puts("***** Found edge! : index:: #{index} list[i].index:: #{list[i].index}")
         #if an edge was found
         edgePos = i #returning its position in the array
         #INCREMENT FREQUENCY IF THE EDGE WAS FOUND IN A DIFFERENT SENT. (CHECK BY MAINTAINING A TEXT NUMBER AND CHECKING IF THE NEW # IS DIFF FROM PREV #)
@@ -489,10 +459,10 @@ end # end of searchdges
 
 def search_edges_to_set_null(list, in_vertex, out, index)
   edgePos = -1
-  puts("***** Searching edge to set to null:: #{in_vertex.name} - #{out.name} ... num_edges #{@num_edges}")
+  # puts("***** Searching edge to set to null:: #{in_vertex.name} - #{out.name} ... num_edges #{@num_edges}")
   for i in 0..@num_edges - 1
     if(!list[i].nil? and !list[i].in_vertex.nil? and !list[i].out_vertex.nil?)
-      puts "comparing with #{list[i].in_vertex.name} - #{list[i].out_vertex.name}"
+      # puts "comparing with #{list[i].in_vertex.name} - #{list[i].out_vertex.name}"
       #puts "#{list[i].in_vertex.name.downcase == in_vertex.name.downcase} - #{list[i].out_vertex.name.downcase == out.name.downcase}"
       #checking for exact match with an edge
       if((list[i].in_vertex.name.downcase == in_vertex.name.downcase and list[i].out_vertex.name.downcase == out.name.downcase) or
@@ -506,7 +476,7 @@ def search_edges_to_set_null(list, in_vertex, out, index)
       end
     end 
   end #end of the for loop 
-  puts("***** search_edges_to_set_null #{in_vertex.name} - #{out.name} returning:: #{edgePos}")
+  # puts("***** search_edges_to_set_null #{in_vertex.name} - #{out.name} returning:: #{edgePos}")
   return edgePos
 end # end of the method search_edges_to_set_null 
 #------------------------------------------#------------------------------------------#------------------------------------------
@@ -522,34 +492,33 @@ def remove_redundant_edges(in_vertex, out, index)
     if(!list[j].nil? and list[j].index == index)
      #when invertices are eq and out-verts are substrings or vice versa
       if(in_vertex.name.casecmp(list[j].in_vertex.name) == 0 and out.name.casecmp(list[j].out_vertex.name) != 0 and out.name.downcase.include?(list[j].out_vertex.name.downcase))
-        puts("FOUND out_vertex match for edge:: #{list[j].in_vertex.name} - #{list[j].out_vertex.name}")
+        # puts("FOUND out_vertex match for edge:: #{list[j].in_vertex.name} - #{list[j].out_vertex.name}")
         list[j] = nil
         #@num_edges-=1
         #when in-vertices are only substrings and out-verts are equal
       elsif(in_vertex.name.casecmp(list[j].in_vertex.name)!=0 and in_vertex.name.downcase.include?(list[j].in_vertex.name.downcase) and out.name.casecmp(list[j].out_vertex.name)==0)
-        puts("FOUND in_vertex match for edge: #{list[j].in_vertex.name} - #{list[j].out_vertex.name}")
+        # puts("FOUND in_vertex match for edge: #{list[j].in_vertex.name} - #{list[j].out_vertex.name}")
         list[j] = nil
         #@num_edges-=1
       end
     end
     j-=1
   end #end of the while loop
-  puts "**** search_edges:: Old number #{@num_edges}"
+  # puts "**** search_edges:: Old number #{@num_edges}"
   #recreating the edges array without the nil values
   counter = 0
   edges_array = Array.new
   list.each{
     |edge|
     if(!edge.nil?)
-      puts "edge:: #{edge.in_vertex.name} - #{edge.out_vertex.name}"
+      # puts "edge:: #{edge.in_vertex.name} - #{edge.out_vertex.name}"
       edges_array << edge
       counter+=1
     end
     }  
   @edges = edges_array
   @num_edges = counter+1
-      
-  puts "**** search_edges:: New number of edges #{@num_edges}"
+  # puts "**** search_edges:: New number of edges #{@num_edges}"
 end
 
 #------------------------------------------#------------------------------------------#------------------------------------------
@@ -577,7 +546,8 @@ end #end of print_graph method
 #------------------------------------------#------------------------------------------#------------------------------------------
 #Identifying parents and labels for the vertices
 def find_parents(t)
-  puts "Inside find_parents.. text #{t}"  
+  # puts "Inside find_parents.. text #{t}"
+  tp = TextPreprocessing.new  
   unTaggedString = t.split(" ")
   parents = Array.new
   #  t = text[i]
@@ -591,12 +561,11 @@ def find_parents(t)
   #puts "unTaggedString.length #{unTaggedString.length}"
   for j in (0..unTaggedString.length - 1)
     #puts "unTaggedString[#{j}] #{unTaggedString[j]}"
-    if(is_punct(unTaggedString[j]))
-      #puts "is_punct true"
+    if(tp.is_punct(unTaggedString[j]))
       next
     end
-    if(contains_punct(unTaggedString[j]))
-      unTaggedString[j] = contains_punct(unTaggedString[j])
+    if(tp.contains_punct(unTaggedString[j]))
+      unTaggedString[j] = tp.contains_punct(unTaggedString[j])
       #puts "unTaggedString #{unTaggedString[j]}"
     end
     pat = parsed_sentence.getAllNodesByWordPattern(unTaggedString[j])
@@ -610,17 +579,12 @@ def find_parents(t)
       parents[j] = nil
     end
   end
-  
-  #printing parents
-  for j in (0..parents.length - 1)
-    puts "parents[#{j}] = #{parents[j]}"
-  end
   return parents
 end #end of find_parents method
 #------------------------------------------#------------------------------------------#------------------------------------------
 #Identifying parents and labels for the vertices
 def find_labels(t)
-  puts "Inside find_labels"
+  # puts "Inside find_labels"
   unTaggedString = t.split(" ")
   t = StanfordCoreNLP::Text.new(t)
   @pipeline.annotate(t)
@@ -646,10 +610,6 @@ def find_labels(t)
       end
     end
   end
-  #printing labels
-  # for j in (0..labels.length - 1)
-    # puts labels[j]
-  # end
   return labels
 end # end of find_labels method
 #------------------------------------------#------------------------------------------#------------------------------------------
@@ -657,14 +617,14 @@ end # end of find_labels method
    * Setting semantic labels for edges based on the labels vertices have with their parents
 =end
 def set_semantic_labels_for_edges
-  puts "*** inside set_semantic_labels_for_edges"
+  # puts "*** inside set_semantic_labels_for_edges"
   for i in (0.. @vertices.length - 1)
     if(!@vertices[i].nil? and !@vertices[i].parent.nil?) #parent = null for ROOT
         #search for the parent vertex
         for j in (0..@vertices.length - 1)
           if(!@vertices[j].nil? and (@vertices[j].name.casecmp(@vertices[i].parent) == 0 or 
                 @vertices[j].name.downcase.include?(@vertices[i].parent.downcase)))
-            puts("**Parent:: #{@vertices[j].name}")
+            # puts("**Parent:: #{@vertices[j].name}")
             parent = @vertices[j]
             break #break out of search for the parent
           end
@@ -694,12 +654,12 @@ end # end of the class GraphGenerator
  Identifying frequency of edges and pruning out edges that do no meet the threshold conditions 
 =end
 def identify_frequency_and_prune_edges(edges, num)
-  puts "inside frequency threshold! :: num #{num}"
+  # puts "inside frequency threshold! :: num #{num}"
   #freqEdges maintains the top frequency edges from ALPHA_FREQ to BETA_FREQ
   freqEdges = Array.new #from alpha = 3 to beta = 10
   #iterating through all the edges
-  for j in (0..num-1) #(int j = 0; j < num; j++)
-    if(!edges[j].nil?)#{       
+  for j in (0..num-1) 
+    if(!edges[j].nil?)       
       if(edges[j].frequency <= BETA_FREQ and edges[j].frequency >= ALPHA_FREQ and !freqEdges[edges[j].frequency-1].nil?)#{
         for i in (0..freqEdges[edges[j].frequency-1].length - 1)#iterating to find i for which freqEdges is null
           if(!freqEdges[edges[j].frequency-1][i].nil?)
@@ -713,9 +673,9 @@ def identify_frequency_and_prune_edges(edges, num)
   selectedEdges = Array.new  
   #Selecting only those edges that satisfy the frequency condition [between ALPHA and BETA]
   j = BETA_FREQ-1
-  while j >= ALPHA_FREQ-1 do #(int j = BETA_FREQ-1; j >= ALPHA_FREQ-1; j--) #&& maxSelected < MAX
+  while j >= ALPHA_FREQ-1 do 
     if(!freqEdges[j].nil?)
-      for i in (0..num-1)#(int i = 0; freqEdges[j][i] != null && i < num; i++){//&& maxSelected < MAX
+      for i in (0..num-1)
         if(!freqEdges[j][i].nil?)
           selectedEdges[maxSelected] = freqEdges[j][i]
           maxSelected+=1
@@ -729,55 +689,5 @@ def identify_frequency_and_prune_edges(edges, num)
     @num_edges = maxSelected #replacing numEdges with the number of selected edges
   end
   return selectedEdges
-end
-#------------------------------------------#------------------------------------------#------------------------------------------
-=begin
- Checking if "str" is a punctuation mark like ".", ",", "?" etc. 
-=end
-def is_punct(str)
-  if(str == "." or str == "," or str == "?" or str == "!" or str == ";" or str == ":")
-    return true
-  else
-    return false
-  end 
-end  
-#------------------------------------------#------------------------------------------#------------------------------------------
-=begin
- Checking if "str" is a punctuation mark like ".", ",", "?" etc. 
-=end
-public #The method was throwing a "NoMethodError: private method" error when called from a different class. Hence the "public" keyword.
-def contains_punct(str)
-  if(str.include?".")
-    str.gsub!(".","")
-  elsif(str.include?",")
-    str.gsub!(",","")
-  elsif(str.include?"?")
-    str.gsub!("?","")
-  elsif(str.include?"!")
-    str.gsub!("!","") 
-  elsif(str.include?";")
-    str.gsub(";","")
-  elsif(str.include?":")
-    str.gsub!(":","")
-  elsif(str.include?"(")
-    str.gsub!("(","")
-  elsif(str.include?")")
-    str.gsub!(")","")
-  elsif(str.include?"[")
-    str.gsub!("[","")
-  elsif(str.include?"]")
-    str.gsub!("]","")  
-  end 
-  return str
 end 
-
-#testing
-=begin
-pos_tagger = EngTagger.new
-pipeline =  StanfordCoreNLP.load(:tokenize, :ssplit, :pos, :lemma, :parse, :ner, :dcoref)
-text = Array.new
-text[0] = "Alice chased the big fat cat."
-puts "#{text}"
-instance = Graphgenerator.new
-instance.generateGraph(text, posTagger, pipeline)
-=end
+#------------------------------------------#------------------------------------------#------------------------------------------

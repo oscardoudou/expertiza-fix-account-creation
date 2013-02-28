@@ -5,6 +5,7 @@ require 'automated_metareview/plagiarism_check'
 require 'automated_metareview/tone'
 require 'automated_metareview/text_quantity'
 require 'automated_metareview/constants'
+require 'automated_metareview/coverage'
 
 #gem install edavis10-ruby-web-search
 #gem install google-api-client
@@ -76,20 +77,44 @@ class AutomatedMetareview < ActiveRecord::Base
       # #initializing the pos tagger and nlp tagger/semantic parser  
       pos_tagger = EngTagger.new
       core_NLP_tagger =  StanfordCoreNLP.load(:tokenize, :ssplit, :pos, :lemma, :parse, :ner, :dcoref)
+      #---------
+      #PRE-PROCESSING - GRAPH GENERATION - SINCE SEVERAL METRICS USE THE GRAPH REPRESENTATION
+      g = GraphGenerator.new
+      #graph generation for every sentence in the review text
+      review_graph = Array.new #contains an array of graph instances (by cloning the object)
+      for i in (0..review_text.length-1)
+        g.generate_graph(review_text[i], pos_tagger, core_NLP_tagger, i)
+        review_graph << g.clone
+      end
+      
+      #graph generation for every sentence in the submission text
+      submission_graph = Array.new
+      for i in (0..subm_text.length-1)
+        g.generate_graph(subm_text[i], pos_tagger, core_NLP_tagger, i)
+        submission_graph << g.clone
+      end
       
       #---------    
       #relevance
       beginning_time = Time.now
       relev = DegreeOfRelevance.new
-      self.relevance = relev.get_relevance(review_text, subm_text, 1, pos_tagger, core_NLP_tagger, speller) #1 indicates the number of reviews
-      #assigninging the graph generated for the review to the class variable, in order to reuse it for content classification
-      review_graph = relev.review
+      self.relevance = relev.get_relevance(review_text, subm_text, review_graph, submission_graph, speller)
       #calculating end time
       end_time = Time.now
       relevance_time = end_time - beginning_time
       # puts "************* relevance_time - #{relevance_time}"      
       
       #---------    
+      # calculating coverage
+      coverage_instance = Coverage.new
+      beginning_time = Time.now
+      self.coverage = coverage_instance.get_coverage(review_text, subm_text, review_graph, submission_graph, speller)
+      puts "************* coverage - #{self.coverage}"
+      end_time = Time.now
+      coverage_time = end_time - beginning_time
+      # puts "************* plagiarism_time - #{plagiarism_time}"
+      #---------    
+
       # checking for plagiarism
       if(self.plagiarism != true) #if plagiarism hasn't already been set
         beginning_time = Time.now
@@ -111,7 +136,7 @@ class AutomatedMetareview < ActiveRecord::Base
         "app/models/automated_metareview/patterns-prob-detect.csv",
         "app/models/automated_metareview/patterns-suggest.csv"]
       #predcting class - last parameter is the number of classes
-      content_probs = content_instance.predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, pattern_files_array, pattern_files_array.length)
+      content_probs = content_instance.predict_classes(pos_tagger, review_text, review_graph, pattern_files_array, pattern_files_array.length)
       #self.content = "SUMMATIVE - #{(content_probs[0] * 10000).round.to_f/10000}, PROBLEM - #{(content_probs[1] * 10000).round.to_f/10000}, SUGGESTION - #{(content_probs[2] * 10000).round.to_f/10000}"
       end_time = Time.now
       content_time = end_time - beginning_time

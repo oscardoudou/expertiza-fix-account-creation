@@ -18,7 +18,7 @@ attr_accessor :vertices, :num_vertices, :edges, :num_edges, :pipeline, :pos_tagg
    * type = 1 - submission/past review
    * type = 2 - new review
 =end
-def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIdentify)
+def generate_graph(text, pos_tagger, coreNLPTagger, sent_num)
   #initializing common arrays 
   @vertices = Array.new
   @num_vertices = 0
@@ -27,14 +27,18 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
 
   @pos_tagger = pos_tagger #part of speech tagger
   @pipeline = coreNLPTagger #dependency parsing
-  #iterate through the sentences in the text
-  for i in (0..text.length-1)
-    if(text[i].empty? or text[i] == "" or text[i].split(" ").empty?)
-      next
+  #setting the sentence number i.e., the ith sentence in the review or submission
+  i = sent_num
+#  for i in (0..text.length-1)
+    # if(text[i].empty? or text[i] == "" or text[i].split(" ").empty?)
+      # next
+    # end
+    if(text.empty? or text == "" or text.split(" ").empty?)
+      return
     end
-    unTaggedString = text[i].split(" ")
+    unTaggedString = text.split(" ")
     # puts "UnTagged String:: #{unTaggedString}"
-    taggedString = @pos_tagger.get_readable(text[i])
+    taggedString = @pos_tagger.get_readable(text)
     # puts "taggedString:: #{taggedString}"
     
     #Initializing some arrays
@@ -52,11 +56,11 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
     
     #------------------------------------------#------------------------------------------
     #finding parents
-    parents = find_parents(text[i])
+    parents = find_parents(text)
     parentCounter = 0
     #------------------------------------------#------------------------------------------
     #finding parents
-    labels = find_labels(text[i])
+    labels = find_labels(text)
     labelCounter = 0
     #------------------------------------------#------------------------------------------
     #find state
@@ -349,7 +353,7 @@ def generate_graph(text, pos_tagger, coreNLPTagger, forRelevance, forPatternIden
     verbs = nil
     adjectives = nil
     adverbs = nil
-  end #end of number of sentences in the text
+  #end #end of number of sentences in the text
 
   @num_vertices = @num_vertices - 1 #since as a counter it was 1 ahead of the array's contents
   @num_edges = @num_edges - 1 #same reason as for num_vertices
@@ -550,7 +554,6 @@ def find_parents(t)
   tp = TextPreprocessing.new  
   unTaggedString = t.split(" ")
   parents = Array.new
-  #  t = text[i]
   t = StanfordCoreNLP::Text.new(t) #the same variable has to be passed into the Textx.new method
   @pipeline.annotate(t)
   #for each sentence identify theparsed form of the sentence

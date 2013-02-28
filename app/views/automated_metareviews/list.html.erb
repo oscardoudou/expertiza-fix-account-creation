@@ -13,6 +13,14 @@
 <%end %>
 	<!-- The 'i' values are hard-coded - to be passed to the partial 'details' -->  
 	<%= link_to_remote_redbox "info", :url => {:controller => 'popup', :action => 'automated_metareview_details_popup', :type => "Relevance"} %><img src="/images/info.png"> <br>
+<!-- Coverage -->
+<%if !@automated_metareview.coverage.nil? %>
+	<b> Coverage - <%= (@automated_metareview.coverage * 10000).round.to_f/10000 %> </b>
+<%else %>
+	<b> Coverage - 0 </b>
+<%end %>
+	<!-- The 'i' values are hard-coded - to be passed to the partial 'details' -->  
+	<%= link_to_remote_redbox "info", :url => {:controller => 'popup', :action => 'automated_metareview_details_popup', :type => "Coverage"} %><img src="/images/info.png"> <br>
 <!-- Quantity -->
 <b> Quantity - <%= @automated_metareview.quantity %> </b>
 	<%= link_to_remote_redbox "info", :url => {:controller => 'popup', :action => 'automated_metareview_details_popup', :type => "Quantity"} %> <img src="/images/info.png"><br>

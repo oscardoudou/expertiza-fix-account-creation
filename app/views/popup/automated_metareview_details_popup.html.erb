@@ -7,6 +7,9 @@
 	<% if params[:type] == "Relevance"%>		
 		<i>Relevance</i> identifies the degree of relevance between your review and the author's submission. <br>
 		The value is on a scale of [0 - 1], where <font color="#FF0000">0 indicates no traces of relevance</font> and <font color="#008000"> 1 indicates highest relevance.</font>
+	<% elsif params[:type] == "Coverage"%>		
+		<i>Coverage</i> identifies the degree of coverage between your review and topic sentences in the author's submission. <br>
+		The value is on a scale of [0 - 1], where <font color="#FF0000">0 indicates no coverage of the submission</font> and <font color="#008000"> 1 indicates highest coverage.</font>
 	<% elsif params[:type] == "Content"%>		
 		<i>Content</i> identifies the extent to which your review contains praise, criticism, identifies problems or provides suggestions in the author's work. <br>
 		The value is on a scale of [0 - 1], where <font color="#FF0000"> 0 indicates no traces of the content type</font> and <font color="#008000"> 1 indicates maximum occurrence of the content type.</font>

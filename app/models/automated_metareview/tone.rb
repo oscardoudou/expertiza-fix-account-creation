@@ -25,7 +25,13 @@ class Tone
     end
 
     negative = negative + NEGATIVE_DESCRIPTORS
-    review_edges = review_graph.edges
+    #grouping vertices and edges from the different sentences in the review into one complete forest
+    review_edges = Array.new
+    for i in 0..review_graph.length - 1
+      for j in 0..review_graph[i].edges.length-1
+        review_edges <<  review_graph[i].edges[j]
+      end
+    end
     
     #if the edges are nil
     if(review_edges.nil?)

@@ -7,7 +7,7 @@ class PredictClass
  Returns an array of probablities (length = numClasses) 
 =end
 #predicting the review's class
-def predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, pattern_files_array, num_classes)
+def predict_classes(pos_tagger, review_text, review_graph, pattern_files_array, num_classes)
   #reading the patterns from the pattern files
   patterns_files = Array.new
   pattern_files_array.each do |file|
@@ -22,16 +22,23 @@ def predict_classes(pos_tagger, core_NLP_tagger, review_text, review_graph, patt
     single_patterns[i] = tc.read_patterns(patterns_files[i], pos_tagger) 
   end
   
+  #grouping vertices and edges from the different sentences in the review into one complete forest
+  review_edges = Array.new
+  for i in 0..review_graph.length - 1
+    for j in 0..review_graph[i].edges.length-1
+      review_edges <<  review_graph[i].edges[j]
+    end
+  end
   #Predicting the probability of the review belonging to each of the content classes
   wordnet = WordnetBasedSimilarity.new
   max_probability = 0.0
   class_value = 0          
-  edges = review_graph.edges
+  # review_edges = review_graph.edges
   class_prob = Array.new #contains the probabilities for each of the classes - it contains 3 rows for the 3 classes    
   #comparing each test review text with patterns from each of the classes
   for k in (0..num_classes - 1)
     #comparing edges with patterns from a particular class
-    class_prob[k] = compare_review_with_patterns(edges, single_patterns[k], wordnet)/6.to_f #normalizing the result 
+    class_prob[k] = compare_review_with_patterns(review_edges, single_patterns[k], wordnet)/6.to_f #normalizing the result 
     #we divide the match by 6 to ensure the value is in the range of [0-1]     
   end #end of for loop for the classes          
   

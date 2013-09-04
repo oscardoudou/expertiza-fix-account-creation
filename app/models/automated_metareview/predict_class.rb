@@ -87,8 +87,8 @@ end #end of determineClass method
 #------------------------------------------#------------------------------------------#------------------------------------------
 
 def compare_edges(e1, e2, wordnet)
-  speller = Aspell.new("en_US")
-  speller.suggestion_mode = Aspell::NORMAL
+  speller = FFI::Aspell::Speller.new('en_US')
+  #speller.suggestion_mode = Aspell::NORMAL
   
   avg_match_without_syntax = 0
   #compare edges so that only non-nouns or non-subjects are compared

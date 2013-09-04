@@ -277,9 +277,9 @@ def check_correct_spellings(review_text_array, speller)
     review_tokens.each{
       |review_tok|
       #checkiing the stem word's spelling for correctness
-      if(!speller.check(review_tok))
-        if(!speller.suggest(review_tok).first.nil?)
-          review_tok = speller.suggest(review_tok).first
+      if(!speller.correct?(review_tok))
+        if(!speller.suggestions(review_tok).first.nil?)
+          review_tok = speller.suggestions(review_tok).first
         end
      end
      review_text_temp = review_text_temp +" " + review_tok.downcase

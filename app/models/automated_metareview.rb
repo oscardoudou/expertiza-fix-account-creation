@@ -5,6 +5,7 @@ require 'automated_metareview/plagiarism_check'
 require 'automated_metareview/tone'
 require 'automated_metareview/text_quantity'
 require 'automated_metareview/constants'
+require 'automated_metareview/review_coverage'
 
 #gem install edavis10-ruby-web-search
 #gem install google-api-client
@@ -23,8 +24,8 @@ class AutomatedMetareview < ActiveRecord::Base
     @review_array = preprocess.fetch_review_data(self, map_id)
     # puts "self.responses #{self.responses}"
     
-    speller = Aspell.new("en_US")
-    speller.suggestion_mode = Aspell::NORMAL
+    speller = FFI::Aspell::Speller.new('en_US')
+    # speller.suggestion_mode = Aspell::NORMAL
     @review_array = preprocess.check_correct_spellings(@review_array, speller)
     # puts "printing review_array"
     @review_array.each{
@@ -79,6 +80,7 @@ class AutomatedMetareview < ActiveRecord::Base
       
       #---------    
       #relevance
+=begin
       beginning_time = Time.now
       relev = DegreeOfRelevance.new
       self.relevance = relev.get_relevance(review_text, subm_text, 1, pos_tagger, core_NLP_tagger, speller) #1 indicates the number of reviews
@@ -119,8 +121,16 @@ class AutomatedMetareview < ActiveRecord::Base
       self.content_problem = content_probs[1] #* 10000).round.to_f/10000
       self.content_advisory = content_probs[2] #* 10000).round.to_f/10000
       # puts "************* content_time - #{content_time}"
+=end
+      #---------    
+      #coverage
+      cover = ReviewCoverage.new
+      self.coverage = cover.calculate_coverage(subm_text, review_text, pos_tagger, core_NLP_tagger, speller)
+      puts "************* coverage - #{self.coverage}"
+      #---------    
       #---------    
       # tone
+=begin
       beginning_time = Time.now
       ton = Tone.new
       tone_array = Array.new
@@ -139,6 +149,7 @@ class AutomatedMetareview < ActiveRecord::Base
       self.quantity = quant.number_of_unique_tokens(review_text)
       end_time = Time.now
       quantity_time = end_time - beginning_time
+=end
       # puts "************* quantity_time - #{quantity_time}"
       # #---------     
       # # fetch version_num for this new response_id if previous versions of this response already exists in the table

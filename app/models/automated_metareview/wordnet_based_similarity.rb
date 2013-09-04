@@ -395,9 +395,9 @@ def find_stem_word(word, speller)
   stem = word.stem
   correct = stem #initializing correct to the stem word
   #checkiing the stem word's spelling for correctness
-  while(!speller.check(correct)) do
-    if(!speller.suggest(correct).first.nil?)
-      correct = speller.suggest(correct).first
+  while(!speller.correct?(correct)) do
+    if(!speller.suggestions(correct).first.nil?)
+      correct = speller.suggestions(correct).first
     else
       #break out of the loop, else it will continue infinitely
       break #break out of the loop if the first correction was nil

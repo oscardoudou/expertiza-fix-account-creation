@@ -37,6 +37,10 @@ BETA_FREQ = 10
 THRESHOLD = 3 #number of level synonyms to check for tone identification
 #------------------------------------------#------------------------------------------
 
+#threshold for sentences that can be added to a cluster
+MIMATCH = 0.5
+#------------------------------------------#------------------------------------------
+
 #constants used by WordnetBasedSimilarity
 #initializing constants
 NOMATCH = 0 #distinct

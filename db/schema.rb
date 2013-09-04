@@ -9,7 +9,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20130606204315) do
+ActiveRecord::Schema.define(:version => 20130807032758) do
 
   create_table "assignment_questionnaires", :force => true do |t|
     t.integer "assignment_id"
@@ -78,6 +78,7 @@ ActiveRecord::Schema.define(:version => 20130606204315) do
     t.integer  "response_id"
     t.datetime "created_at"
     t.datetime "updated_at"
+    t.float    "coverage"
   end
 
   add_index "automated_metareviews", ["response_id"], :name => "fk_automated_metareviews_responses_id"

@@ -1,0 +1,23 @@
+<table border='1'>
+  <tr>
+    <th> team_id </th>
+    <th> # review </th>
+    <th> median review score </th>
+    <th> aggregated by hammer</th>
+    <th> aggregated by lauw </th>
+    <th> # quiz </th>
+    <th> aggregated by quiz </th>
+  </tr>
+  <%keys = @report.keys%>
+  <%keys.each do |key|%>
+    <tr>
+      <td> <%=@report[key]["team_id"] %></td>
+      <td> <%=@report[key]["num_review"] %></td>
+      <td> <%=@report[key]["median"] %></td>
+      <td> <%=@report[key]["agg_hamer"] %></td>
+      <td> <%=@report[key]["agg_lauw"] %></td>
+      <td> <%=@report[key]["num_quiz"] %></td>
+      <td> <%=@report[key]["agg_quiz"] %></td>
+    </tr>
+  <%end%>
+</table>

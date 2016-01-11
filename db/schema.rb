@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20151107195943) do
+ActiveRecord::Schema.define(version: 20151204000937) do
 
   create_table "answers", force: :cascade do |t|
     t.integer "question_id", limit: 4,     default: 0, null: false
@@ -241,6 +241,14 @@ ActiveRecord::Schema.define(version: 20151107195943) do
   add_index "due_dates", ["review_of_review_allowed_id"], name: "fk_due_date_review_of_review_allowed", using: :btree
   add_index "due_dates", ["submission_allowed_id"], name: "fk_due_date_submission_allowed", using: :btree
 
+  create_table "final_grades", force: :cascade do |t|
+    t.integer  "team_id",     limit: 4
+    t.string   "team_name",   limit: 255
+    t.integer  "final_grade", limit: 4
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+  end
+
   create_table "institutions", force: :cascade do |t|
     t.string "name", limit: 255, default: "", null: false
   end
@@ -339,6 +347,16 @@ ActiveRecord::Schema.define(version: 20151107195943) do
   end
 
   add_index "participants", ["user_id"], name: "fk_participant_users", using: :btree
+
+  create_table "peer_review_grades", force: :cascade do |t|
+    t.integer "reviewer_id",   limit: 4
+    t.integer "submission_id", limit: 4
+    t.float   "total_score",   limit: 24
+    t.integer "round",         limit: 4
+    t.float   "quiz_score",    limit: 24
+    t.float   "repu_hamer",    limit: 24
+    t.float   "repu_lauw",     limit: 24
+  end
 
   create_table "permissions", force: :cascade do |t|
     t.string "name", limit: 255, default: "", null: false

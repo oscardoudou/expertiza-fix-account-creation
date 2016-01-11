@@ -1,23 +1,33 @@
 <table border='1'>
   <tr>
     <th> team_id </th>
-    <th> # review </th>
-    <th> median review score </th>
-    <th> aggregated by hammer</th>
-    <th> aggregated by lauw </th>
-    <th> # quiz </th>
-    <th> aggregated by quiz </th>
+    <th> median_r1 </th>
+    <th> median_r2 </th>
+    <th> agg_hamer_r1</th>
+    <th> agg_hamer_r2</th>
+    <th> agg_lauw_r1</th>
+    <th> agg_lauw_r2</th>
+    <th> agg_quiz </th>
+    <th> num_review_r1 </th>
+    <th> num_review_r2 </th>
+    <th> num_quiz </th>
+    <th> final_grade </th>
   </tr>
   <%keys = @report.keys%>
   <%keys.each do |key|%>
     <tr>
       <td> <%=@report[key]["team_id"] %></td>
-      <td> <%=@report[key]["num_review"] %></td>
-      <td> <%=@report[key]["median"] %></td>
-      <td> <%=@report[key]["agg_hamer"] %></td>
-      <td> <%=@report[key]["agg_lauw"] %></td>
-      <td> <%=@report[key]["num_quiz"] %></td>
+      <td> <%=@report[key]["median_r1"] %></td>
+      <td> <%=@report[key]["median_r2"] %></td>
+      <td> <%=@report[key]["agg_hamer_r1"] %></td>
+      <td> <%=@report[key]["agg_hamer_r2"] %></td>
+      <td> <%=@report[key]["agg_lauw_r1"] %></td>
+      <td> <%=@report[key]["agg_lauw_r2"] %></td>
       <td> <%=@report[key]["agg_quiz"] %></td>
+      <td> <%=@report[key]["num_review_r1"] %></td>
+      <td> <%=@report[key]["num_review_r2"] %></td>
+      <td> <%=@report[key]["num_quiz"] %></td>
+      <td> <%=@report[key]["final_grade"] %></td>
     </tr>
   <%end%>
 </table>

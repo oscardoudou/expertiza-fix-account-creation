@@ -258,7 +258,7 @@ Expertiza::Application.routes.draw do
     end
   end
 
-  resources :reputation_web_service do
+  resources :reputation_web_service, :collusion_detection_web_service do
     collection do
       get :client
       post :send_post_request

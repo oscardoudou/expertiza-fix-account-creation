@@ -10,7 +10,6 @@ class CollusionDetectionWebServiceController < ApplicationController
   @@assignment_id = ''
   @@another_assignment_id = ''
   @@round_num = ''
-  @@algorithm = ''
   @@additional_info = ''
   @@response = ''
 
@@ -81,7 +80,6 @@ class CollusionDetectionWebServiceController < ApplicationController
     req.body = json_generator(curr_assignment_id, params[:another_assignment_id].to_i, params[:round_num].to_i).to_json
     @@assignment_id = params[:assignment_id]
     @@round_num = params[:round_num]
-    @@algorithm = params[:algorithm]
     @@another_assignment_id = params[:another_assignment_id]
 
     # Eg.

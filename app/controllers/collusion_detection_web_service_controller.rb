@@ -138,6 +138,12 @@ class CollusionDetectionWebServiceController < ApplicationController
     redirect_to action: 'client'
   end
 
+  def send_post_request
+    curr_assignment_id = (params[:assignment_id].empty? ? '724' : params[:assignment_id])
+    @@request_body = json_generator(curr_assignment_id, params[:another_assignment_id].to_i, params[:round_num].to_i).to_json
+    redirect_to action: 'client'
+  end
+
   def rsa_public_key1(data)
     public_key_file = 'public1.pem'
     public_key = OpenSSL::PKey::RSA.new(File.read(public_key_file))

@@ -33,6 +33,7 @@ class CollusionDetectionWebServiceController < ApplicationController
       topic_condition = ((has_topic and SignedUpTeam.where(team_id: team.id).first.is_waitlisted == false) or !has_topic)
       last_valid_response = response_map.response.select {|r| r.round == round_num }.sort.last
       next unless topic_condition == true and !last_valid_response.nil?
+
       answers = Answer.where(response_id: last_valid_response.id)
       max_question_score = answers.first.question.questionnaire.max_question_score
       temp_sum = 0
@@ -43,14 +44,19 @@ class CollusionDetectionWebServiceController < ApplicationController
         temp_sum += answer.answer * answer.question.weight
         weight_sum += answer.question.weight
       end
-
       peer_review_grade = (100.0 * temp_sum / (weight_sum * max_question_score)).round(2)
+
       team.teams_users.each do |teams_user|
         user_name = User.find(teams_user.user_id).name 
         raw_data_array << {"reviewer_actor_id" => reviewer.name,
                            "reviewee_actor_id" => user_name,
                            "score"             => peer_review_grade} 
-        actors << {"id" => user_name}
+        if !actors.include?({"id" => user_name})
+          actors << {"id" => user_name}
+        end
+      end
+      if !actors.include?({"id" => reviewer.name})
+        actors << {"id" => reviewer.name}
       end
     end
     [raw_data_array, actors]

@@ -1,7 +1,7 @@
 class AuthController < ApplicationController
   helper :auth
 
-  @@attempts = 0
+  @@attempts = Hash.new
 
   # GETs should be safe (see http://www.w3.org/2001/tag/doc/whenToUseGet.html)
   verify method: :post, only: [:login, :logout],
@@ -20,26 +20,34 @@ class AuthController < ApplicationController
     if request.get?
       AuthController.clear_session(session)
     else
-      user = User.find_by_login(params[:login][:name])
-      if user and user.valid_password?(params[:login][:password])
-        after_login(user)
+      #let users do captcha when they fail to login
+      if @@attempts.key?(params[:login][:name]) and @@attempts[params[:login][:name]] >= 1 and not verify_recaptcha(model: @user)
+        flash[:error] = "Please do the reCaptcha before attempting to login again (" + @@attempts[params[:login][:name]].to_s + " attempt(s))."
+        render template: "auth/login"
       else
-
-        @@attempts = @@attempts + 1
-        logger.warn "Failed login attempt."
-        flash[:error] = "Your username or password is incorrect."
-        if @@attempts >= 3
-            if verify_recaptcha(model: @user)
-              @@attempts = 0
-              redirect_to controller: 'password_retrieval', action: 'forgotten'
-            end
-
+        user = User.find_by_login(params[:login][:name])
+        if user and user.valid_password?(params[:login][:password])
+          #remove this user from login attempt list after (s)he enter
+          if @@attempts.key?(params[:login][:name])
+            @@attempts.delete(params[:login][:name])
+          end
+          after_login(user)
         else
-          redirect_to root_path
-
+          #keep track of login attempts per username
+          if @@attempts.key?(params[:login][:name])
+            @@attempts[params[:login][:name]] = @@attempts[params[:login][:name]] + 1
+          else
+            @@attempts[params[:login][:name]] = 1
+          end
+          logger.warn "Failed login attempt."
+          flash[:error] = "Your username or password is incorrect (" + @@attempts[params[:login][:name]].to_s + " attempt(s))."
+          #force them to go to password retrieval after 5x (they can still try logging in when they press back button)
+          if @@attempts[params[:login][:name]] >= 5
+            redirect_to controller: 'password_retrieval', action: 'forgotten'
+          else
+            render template: "auth/login"
+          end
         end
-
-
       end
     end
   end # def login

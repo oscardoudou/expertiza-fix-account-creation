@@ -2,7 +2,7 @@ class PasswordReset < ActiveRecord::Base
   validates :user_email, :presence => true
 
 
-  def self.save_token(user,token)
+  def self.save_token(user, token)
     password_reset = PasswordReset.find_by(:user_email => user.email)
     if password_reset
       password_reset.token = Digest::SHA1.hexdigest(token)
